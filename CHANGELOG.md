@@ -8,6 +8,8 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-04-22
+
 ### Changed
 - `parasolpy.__version__` is now read from installed package metadata via
   `importlib.metadata`, so `pyproject.toml` is the single source of truth
@@ -43,6 +45,7 @@ Initial PyPI release.
   (path helpers, unit conversions, XML config parsing).
 - Self-contained example scripts under `examples/`.
 
-[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jrkasprzyk/parasolpy/releases/tag/v0.1.0
 [0.0.2]: https://pypi.org/project/parasolpy/0.0.2/
