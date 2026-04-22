@@ -11,7 +11,12 @@ form (importing directly from the submodule) is never broken by anything here:
 	from parasolpy import append_Kmeans             # also valid
 """
 
-__version__ = "0.0.1"
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+	__version__ = _pkg_version("parasolpy")
+except PackageNotFoundError:  # running from a source checkout without an install
+	__version__ = "0.0.0+unknown"
 
 from parasolpy.dash_tools import (
 	build_tradeoff_dash_app,
