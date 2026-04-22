@@ -1,0 +1,18 @@
+[project]
+name = "parasolpy"
+version = "0.0.1"
+description = "Python tools for multi-objective decision analysis and visualization"
+authors = [
+    {name = "Joseph Kasprzyk",email = "joseph.kasprzyk@colorado.edu"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "hiplot (>=0.1.33,<0.2.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
