@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<borgRwConfig>
+    <modelFile>C:/Users/josep/Documents/GitHub/BorgRWProblems/problems/RedRiverHaydenCarson/RedRiver-HaydenCarsonExample.v2.9.2.mdl.gz</modelFile>
+    <rwExec>C:/CADSWES/RiverWare 9.3.5/RiverWare.exe</rwExec>
+    <populationSize>200</populationSize>
+    <maxEvaluations>1000</maxEvaluations>
+    <maxConsecEvalFailures>10</maxConsecEvalFailures>
+    <randomSeed>5490</randomSeed>
+    <rclScript>redriver_new.rcl</rclScript>
+    <generateRclScript>true</generateRclScript>
+    <generateDmiControlFiles>true</generateDmiControlFiles>
+    <borgToRwControlFile>InputDMI.txt</borgToRwControlFile>
+    <rwToBorgControlFile>OutputDMI.txt</rwToBorgControlFile>
+    <runTypeIsMRM>false</runTypeIsMRM>
+    <borgToRwDmi>ToRiverWare</borgToRwDmi>
+    <rwToBorgDmi>FromRiverWare</rwToBorgDmi>
+    <mrmConfig></mrmConfig>
+    <numTrace firstTrace="1">1</numTrace>
+    <autoSaveState>true</autoSaveState>
+    <autoSaveFrequency>100</autoSaveFrequency>
+    <autoSaveFile>SearchState.txt</autoSaveFile>
+    <envVarName></envVarName>
+    <doSetEnvVar>false</doSetEnvVar>
+    <envVarValIsSearchDir>true</envVarValIsSearchDir>
+    <envVarValOther></envVarValOther>
+    <checkForRedundantVars>false</checkForRedundantVars>
+    <RWInputList>
+        <rwInput>
+            <type>Scalar</type>
+            <name>Hayden Flood Elev</name>
+            <slotName>Hayden.Bottom Flood Pool</slotName>
+            <slotColLabel>Bottom Flood Pool</slotColLabel>
+            <file>Hayden Bottom Flood Pool.txt</file>
+            <limits lower="1850" upper="1900"/>
+            <rows first="nan" last="nan"/>
+            <delta>1</delta>
+            <nanRows>0</nanRows>
+            <roundingIncrement>0.1</roundingIncrement>
+            <variableList>
+                <variable>
+                    <limits lower="0" upper="1"/>
+                </variable>
+            </variableList>
+        </rwInput>
+        <rwInput>
+            <type>Scalar</type>
+            <name>Carson Flood Elev</name>
+            <slotName>Carson.Bottom Flood Pool</slotName>
+            <slotColLabel>Bottom Flood Pool</slotColLabel>
+            <file>Carson Bottom Flood Pool.txt</file>
+            <limits lower="2140" upper="2175"/>
+            <rows first="nan" last="nan"/>
+            <delta>0</delta>
+            <nanRows>0</nanRows>
+            <roundingIncrement>0.1</roundingIncrement>
+            <variableList>
+                <variable>
+                    <limits lower="0" upper="1"/>
+                </variable>
+            </variableList>
+        </rwInput>
+        <rwInput>
+            <type>Scalar</type>
+            <name>Carson Cons Elev</name>
+            <slotName>Carson.Conservation Elevation</slotName>
+            <slotColLabel>Carson.Conservation Elevation</slotColLabel>
+            <file>Carson Conservation Elevation.txt</file>
+            <limits lower="2140" upper="2175"/>
+            <rows first="nan" last="nan"/>
+            <delta>0</delta>
+            <nanRows>0</nanRows>
+            <roundingIncrement>0.1</roundingIncrement>
+            <variableList>
+                <variable>
+                    <limits lower="0" upper="1"/>
+                </variable>
+            </variableList>
+        </rwInput>
+        <rwInput>
+            <type>Scalar</type>
+            <name>Max Channel Flow</name>
+            <slotName>City.Max Channel Flow</slotName>
+            <slotColLabel>Max Channel Flow</slotColLabel>
+            <file>Max Channel Flow.txt</file>
+            <limits lower="500" upper="2000"/>
+            <rows first="nan" last="nan"/>
+            <delta>0</delta>
+            <nanRows>0</nanRows>
+            <roundingIncrement>1</roundingIncrement>
+            <variableList>
+                <variable>
+                    <limits lower="0" upper="1"/>
+                </variable>
+            </variableList>
+        </rwInput>
+        <rwInput>
+            <type>Scalar</type>
+            <name>Irrig Allocation</name>
+            <slotName>Apple Valley.PercentageFulfilled</slotName>
+            <slotColLabel>Apple Valley.PercentageFulfilled</slotColLabel>
+            <file>Apple Valley Irrigation Allocation.txt</file>
+            <limits lower="0.1" upper="1"/>
+            <rows first="nan" last="nan"/>
+            <delta>0</delta>
+            <nanRows>0</nanRows>
+            <roundingIncrement>0.01</roundingIncrement>
+            <variableList>
+                <variable>
+                    <limits lower="0" upper="1"/>
+                </variable>
+            </variableList>
+        </rwInput>
+    </RWInputList>
+    <objectiveList>
+        <objective>
+            <name>Carson2160</name>
+            <slotName>Objectives and Metrics.Carson2160</slotName>
+            <file>Carson2160</file>
+            <epsilon>0.01</epsilon>
+            <function>Average</function>
+            <nanReplacement>99</nanReplacement>
+        </objective>
+        <objective>
+            <name>Hayden1870</name>
+            <slotName>Objectives and Metrics.Hayden1870</slotName>
+            <file>Hayden1870</file>
+            <epsilon>0.01</epsilon>
+            <function>Average</function>
+            <nanReplacement>99</nanReplacement>
+        </objective>
+        <objective>
+            <name>AppleValleyVolRelNeg</name>
+            <slotName>Objectives and Metrics.AppleValleyVolRelNeg</slotName>
+            <file>AppleValleyVolRelNeg</file>
+            <epsilon>0.01</epsilon>
+            <function>Average</function>
+            <nanReplacement>99</nanReplacement>
+        </objective>
+        <objective>
+            <name>City600</name>
+            <slotName>Objectives and Metrics.CityFlow600</slotName>
+            <file>CityFlow600</file>
+            <epsilon>0.01</epsilon>
+            <function>Average</function>
+            <nanReplacement>99</nanReplacement>
+        </objective>
+        <objective>
+            <name>BorderVolRelNeg</name>
+            <slotName>Objectives and Metrics.BorderVolRelNeg</slotName>
+            <file>BorderVolRelNeg</file>
+            <epsilon>0.01</epsilon>
+            <function>Average</function>
+            <nanReplacement>999</nanReplacement>
+        </objective>
+    </objectiveList>
+    <metricList/>
+    <constraintList/>
+    <OutputDir>SearchOutput_v1.8.3</OutputDir>
+    <timestampOutputDir>false</timestampOutputDir>
+    <decisionVarFile>VariableValues.Borg.txt</decisionVarFile>
+    <allValuesFile>AllValues.txt</allValuesFile>
+    <addHeaderToAllValuesFile>false</addHeaderToAllValuesFile>
+    <borgLogFile>RunTime.txt</borgLogFile>
+    <borgLogFileParsable>RunTime.Parsable.txt</borgLogFileParsable>
+    <borgLogFrequency>10</borgLogFrequency>
+    <riverwareLogFile>./logs/RiverWareLog.%d.txt</riverwareLogFile>
+    <rwInputDmiDir>DataToRiverWare</rwInputDmiDir>
+    <rwOutputDmiDir>DataFromRiverWare</rwOutputDmiDir>
+    <outputsFileTransformed>Archive.txt</outputsFileTransformed>
+    <outputsFileRaw>Archive.Borg.txt</outputsFileRaw>
+    <nondomSolsFileCsv>NondominatedSolutions.csv</nondomSolsFileCsv>
+    <nondomSolsFileCsvRowIndexed>true</nondomSolsFileCsvRowIndexed>
+    <addHeaderToOutputsFiles>true</addHeaderToOutputsFiles>
+    <inputFilesCopyDir>Input Files Copy</inputFilesCopyDir>
+    <copyConfigFile>true</copyConfigFile>
+    <copyModelFile>false</copyModelFile>
+    <copyRclScript>true</copyRclScript>
+    <copyDmiControlFiles>true</copyDmiControlFiles>
+    <sbxRate>1</sbxRate>
+    <sbxDistributionIndex>15</sbxDistributionIndex>
+    <pmDistributionIndex>20</pmDistributionIndex>
+    <deCrossoverRate>0.1</deCrossoverRate>
+    <deStepSize>0.5</deStepSize>
+    <pcxNumParents>3</pcxNumParents>
+    <pcxNumOffspring>2</pcxNumOffspring>
+    <pcxEta>0.1</pcxEta>
+    <pcxZeta>0.1</pcxZeta>
+    <undxNumParents>3</undxNumParents>
+    <undxNumOffspring>2</undxNumOffspring>
+    <undxEta>0.35</undxEta>
+    <undxZeta>0.5</undxZeta>
+    <spxNumParents>3</spxNumParents>
+    <spxNumOffspring>2</spxNumOffspring>
+    <spxEpsilon>3</spxEpsilon>
+</borgRwConfig>
