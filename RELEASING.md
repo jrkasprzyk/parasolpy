@@ -1,57 +1,67 @@
 # Releasing
 
-This document describes how to cut a new release of `parasolpy` using [Poetry](https://python-poetry.org/).
+This document describes how to cut a new release of `parasolpy`. Publishing is automated by
+[`.github/workflows/python-publish.yml`](.github/workflows/python-publish.yml), which fires when
+you **publish a GitHub Release** and uploads to PyPI via Trusted Publishing (no API tokens required).
+
+The canonical rule: **the version in `pyproject.toml` and the git tag must match** (`0.3.0` ↔ `v0.3.0`). Everything else follows from that.
 
 ## Prerequisites
 
 - Poetry installed (`pipx install poetry` or see the [official docs](https://python-poetry.org/docs/#installation)).
+- Python 3 on `PATH` (the release scripts are Python).
 - A clean working tree on `main` with all changes to be released already merged.
-- A [PyPI](https://pypi.org/) account with upload rights for `parasolpy`, and an API token.
+- Write access to the GitHub repo (to push tags and create releases).
 
-## One-time setup (per machine)
+## Quick release (using the script)
 
-Configure Poetry with your PyPI API token (stored in Poetry's config, not committed):
+The release script bumps `pyproject.toml`, moves `[Unreleased]` content in `CHANGELOG.md` to a new dated section, updates link references, commits both files, and pushes the tag. You still need to publish the GitHub Release manually — that's the deliberate "go" button that triggers the PyPI upload.
 
-```bash
-poetry config pypi-token.pypi <your-pypi-token>
-```
+1. **Sync and run the tests.**
 
-For testing against TestPyPI first (recommended):
+   ```bash
+   git checkout main
+   git pull
+   poetry install
+   poetry run pytest -q
+   ```
 
-```bash
-poetry config repositories.testpypi https://test.pypi.org/legacy/
-poetry config pypi-token.testpypi <your-testpypi-token>
-```
+2. **Make sure `CHANGELOG.md` has entries under `## [Unreleased]`.** These will become the new version's release notes. If the section is empty the script will warn and let you opt in to an empty release.
 
-### Releasing from a new computer
+3. **Run the release script** with the new version.
 
-Poetry stores tokens locally (e.g. `%APPDATA%\pypoetry\auth.toml` on Windows,
-`~/.config/pypoetry/auth.toml` on macOS/Linux) and does not sync them between
-machines. On a new computer you need to run the `poetry config pypi-token.*`
-commands above again. You can either:
+   Git Bash / macOS / Linux:
 
-- **Reuse an existing token** if you saved it in a password manager when it was
-  created (PyPI only displays the token value once, so if you didn't save it,
-  you can't retrieve it).
-- **Generate a new token** at <https://pypi.org/manage/account/token/>. Using
-  a per-machine token is good hygiene — if a machine is lost you can revoke
-  just that token without affecting the others.
+   ```bash
+   ./scripts/release.sh 0.3.0
+   ```
 
-### About token scopes
+   PowerShell / Windows:
 
-When you create a token on PyPI you choose its scope:
+   ```powershell
+   python scripts/release.py 0.3.0
+   ```
 
-- **Account-scoped token** — works for all your PyPI projects and can create
-  new ones. Convenient but higher blast radius if leaked.
-- **Project-scoped token** — tied to a single existing project (e.g. just
-  `parasolpy`). Cannot upload to other projects or create new ones. Safer, and
-  the recommended default for ongoing releases.
+4. **Publish a GitHub Release** to trigger the PyPI upload.
 
-A common pattern: use an account-scoped token once to perform the very first
-upload of a new project (project-scoped tokens can't create projects), then
-replace it with a project-scoped token for all subsequent releases.
+   - **Web UI:** Repo → Releases → "Draft a new release" → select the tag → add release notes → Publish release.
+   - **GitHub CLI:**
 
-## Release steps
+     ```bash
+     gh release create "v$(poetry version -s)" --generate-notes
+     ```
+
+   Confirm the release is live:
+
+   ```bash
+   gh release list
+   ```
+
+5. **Verify** the package is on PyPI: <https://pypi.org/project/parasolpy/>
+
+## Manual release (step by step)
+
+Useful when you want to understand what the script does, or when you need to deviate from the standard path.
 
 1. **Sync and verify the working tree is clean.**
 
@@ -61,40 +71,35 @@ replace it with a project-scoped token for all subsequent releases.
    git status
    ```
 
-2. **Install dependencies and run any checks.**
+2. **Install dependencies and run the tests.**
 
    ```bash
    poetry install
+   poetry run pytest -q
    ```
 
-3. **Bump the version.** Use Poetry's `version` command with `patch`, `minor`, or `major` (or pass an explicit version).
+3. **Bump the version.** Use Poetry's `version` command with a semver part or an explicit version.
+
+   Semver guidance:
+   - `patch` (`0.1.1` → `0.1.2`): bug fixes, docs
+   - `minor` (`0.1.1` → `0.2.0`): new features, backward-compatible
+   - `major` (`0.1.1` → `1.0.0`): breaking changes
 
    ```bash
-   poetry version patch      # 0.0.2 -> 0.0.3
-   # or: poetry version minor
-   # or: poetry version 0.1.0
+   poetry version patch   # or minor, major, or an explicit version like 0.3.0
+   poetry version         # confirm
    ```
 
-   Confirm the new version:
-
-   ```bash
-   poetry version
-   ```
-
-4. **Update `CHANGELOG.md`.** Move everything under the `[Unreleased]`
-   heading to a new `[X.Y.Z] — YYYY-MM-DD` section (using the version you
-   just set and today's date). Leave an empty `[Unreleased]` heading at the
-   top for future changes, and update the link references at the bottom of
-   the file:
+4. **Update `CHANGELOG.md`.** Move everything under `[Unreleased]` to a new `[X.Y.Z] — YYYY-MM-DD` section. Leave an empty `[Unreleased]` heading at the top and update the link references at the bottom:
 
    ```markdown
    ## [Unreleased]
 
-   ## [0.2.0] — 2026-05-01
+   ## [0.3.0] — 2026-05-01
    ...
 
-   [Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.0...HEAD
-   [0.2.0]: https://github.com/jrkasprzyk/parasolpy/releases/tag/v0.2.0
+   [Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.3.0...HEAD
+   [0.3.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.0...v0.3.0
    ```
 
 5. **Commit the version bump and changelog together.**
@@ -104,91 +109,50 @@ replace it with a project-scoped token for all subsequent releases.
    git commit -m "Release $(poetry version -s)"
    ```
 
-6. **Tag the release.**
-
-   ```bash
-   git tag "v$(poetry version -s)"
-   ```
-
-7. **Build the distributions.** This creates the wheel and sdist in `dist/`.
+6. **(Optional) Local build sanity check.**
 
    ```bash
    poetry build
+   poetry run twine check dist/*
    ```
 
-8. **(Optional) Publish to TestPyPI first** and verify the upload looks right:
+7. **Tag and push.** Plain `git push` does not push tags, so both commands are needed:
 
    ```bash
-   poetry publish -r testpypi
-   ```
-
-   Try installing from TestPyPI in a throwaway environment to sanity-check:
-
-   ```bash
-   pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ parasolpy
-   ```
-
-9. **Publish to PyPI.**
-
-   ```bash
-   poetry publish
-   ```
-
-   Or combine build and publish in one step:
-
-   ```bash
-   poetry publish --build
-   ```
-
-10. **Push the commit and tag to GitHub.** `poetry publish` only uploads to
-   PyPI — it does not touch GitHub. Plain `git push` pushes commits but *not*
-   tags, so you need both commands:
-
-   ```bash
+   git tag "v$(poetry version -s)"
    git push
    git push --tags
    ```
 
-   Verify the tag made it to the remote:
+   Verify the tag reached the remote:
 
    ```bash
    git ls-remote --tags origin
    ```
 
-11. **Create a GitHub Release.** Pushing a tag makes it show up under the
-    repo's "Tags" view, but it will *not* appear under "Releases" until you
-    explicitly create a release from the tag. Use either:
+8. **Publish a GitHub Release** (step 4 of the quick path above).
 
-    - **Web UI:** Repo → Releases → "Draft a new release" → select the tag →
-      add release notes → Publish release.
-    - **GitHub CLI** (if `gh` is installed):
+## Troubleshooting
 
-      ```bash
-      gh release create "v$(poetry version -s)" --generate-notes
-      ```
+**PyPI not updated after publishing the GitHub Release** — one of:
+- The CI workflow failed. Check the Actions tab on GitHub for errors.
+- The version in `pyproject.toml` doesn't match the git tag (e.g. `0.3.0` vs `v0.3.0` — they must match exactly with the `v` prefix only on the tag).
 
-      `--generate-notes` auto-populates release notes from commits and PRs
-      merged since the previous tag.
+**Tag visible under "Tags" but not "Releases"** — a tag alone does not create a GitHub Release. Publish one from the tag (quick path step 4).
 
-    Confirm the release is live:
-
-    ```bash
-    gh release list
-    ```
-
-### Troubleshooting: release on PyPI but not on GitHub
-
-This almost always means one of:
-
-- The tag was never pushed (`git push --tags` was skipped). Fix with
-  `git push --tags`.
-- The tag was pushed but no GitHub Release was created from it. Fix by
-  running `gh release create "v$(poetry version -s)" --generate-notes` or
-  creating the release in the web UI.
+**Script complains about `[Unreleased]` link ref** — `CHANGELOG.md` must contain a `[Unreleased]: <url>/compare/vPREV...HEAD` reference at the bottom. Add one before running the script.
 
 ## Rolling back a failed release
 
 PyPI does not allow re-uploading the same version. If a release is broken:
 
-1. Yank the bad version on PyPI (via the web UI) if already published.
+1. Yank the bad version on PyPI (via the web UI).
 2. Bump to the next patch version and repeat the release steps.
+
+## One-time setup
+
+For reference, these were configured once and don't need to be redone:
+
+- PyPI Trusted Publisher registered for this repo and workflow
+- GitHub repo environment named `pypi` (Settings → Environments)
+- `license = "MIT"` declared in `pyproject.toml` with [LICENSE](LICENSE) at the repo root
