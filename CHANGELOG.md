@@ -8,6 +8,13 @@ breaking changes).
 
 ## [Unreleased]
 
+### Changed
+- Release workflow migrated to GitHub Actions + PyPI Trusted Publishing.
+  Publishing now triggers on publishing a GitHub Release; no PyPI API
+  token needed. New `scripts/release.py` (and `release.sh` wrapper)
+  bump `pyproject.toml`, roll `CHANGELOG.md` `[Unreleased]` into a
+  dated section, update link refs, commit, and push the tag.
+
 ## [0.2.0] — 2026-04-23
 
 ### Added
