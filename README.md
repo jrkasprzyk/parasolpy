@@ -31,7 +31,7 @@ Requires [Poetry](https://python-poetry.org/docs/#installation)
 to be installed on your system (e.g. `pipx install poetry`):
 
 ```bash
-git clone https://github.com/kasprzyk-research/parasolpy.git
+git clone https://github.com/jrkasprzyk/parasolpy.git
 cd parasolpy
 poetry install
 ```

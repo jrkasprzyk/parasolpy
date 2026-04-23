@@ -8,20 +8,43 @@ authors = [
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.12"
+keywords = [
+    "multi-objective optimization",
+    "decision analysis",
+    "water resources",
+    "epsilon non-dominance",
+    "parallel coordinates",
+    "stochastic hydrology",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "hiplot (>=0.1.33,<0.2.0)",
     "platypus-opt (>=1.4.1,<2.0.0)",
     "pandas (>=2.0.2,<4.0.0)",
-    "plotly (>=6.7.0,<7.0.0)",
-    "dash (>=4.1.0,<5.0.0)",
-    "numpy (>=2.4.4,<3.0.0)",
-    "matplotlib (>=3.10.8,<4.0.0)",
-    "scipy (>=1.17.1,<2.0.0)",
-    "seaborn (>=0.13.2,<0.14.0)",
-    "scikit-learn (>=1.8.0,<2.0.0)",
-    "beautifulsoup4 (>=4.14.3,<5.0.0)"
+    "plotly (>=5.0.0,<7.0.0)",
+    "dash (>=2.0.0,<5.0.0)",
+    "numpy (>=1.24.0,<3.0.0)",
+    "matplotlib (>=3.7.0,<4.0.0)",
+    "scipy (>=1.11.0,<2.0.0)",
+    "seaborn (>=0.12.0,<0.14.0)",
+    "scikit-learn (>=1.3.0,<2.0.0)",
+    "beautifulsoup4 (>=4.12.0,<5.0.0)",
+    "lxml (>=4.9.0)",
 ]
 
+[project.urls]
+Homepage = "https://github.com/jrkasprzyk/parasolpy"
+Source = "https://github.com/jrkasprzyk/parasolpy"
+"Bug Tracker" = "https://github.com/jrkasprzyk/parasolpy/issues"
 
 [project.scripts]
 parasolpy-tradeoff = "parasolpy.dash_tools:main"
@@ -29,3 +52,7 @@ parasolpy-tradeoff = "parasolpy.dash_tools:main"
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
