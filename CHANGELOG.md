@@ -8,6 +8,24 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-04-23
+
+### Added
+- 43-test suite covering `reservoir`, `ism`, `nowak`, `util`, and package
+  import/version checks.
+- PEP 257 docstrings, module-level docs, and `help()` API reference across
+  all public modules.
+- Water treatment worked example ported from original parasol project.
+- `lxml >=4.9.0` dependency (required by `beautifulsoup4` XML parsing paths).
+
+### Changed
+- Dependency upper bounds relaxed: `pandas`, `plotly`, `dash`, `numpy`,
+  `scikit-learn`, and `seaborn` now allow the next major version.
+- Repo URL corrected from `kasprzyk-research/parasolpy` to
+  `jrkasprzyk/parasolpy` in `pyproject.toml` and all references.
+- PyPI classifiers, keywords, and `[project.urls]` block added to
+  `pyproject.toml` for richer package discovery.
+
 ## [0.1.1] — 2026-04-22
 
 ### Changed
@@ -45,7 +63,8 @@ Initial PyPI release.
   (path helpers, unit conversions, XML config parsing).
 - Self-contained example scripts under `examples/`.
 
-[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jrkasprzyk/parasolpy/releases/tag/v0.1.0
 [0.0.2]: https://pypi.org/project/parasolpy/0.0.2/
