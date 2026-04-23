@@ -1,3 +1,5 @@
+"""Multi-objective tradeoff analysis: epsilon non-dominance, parallel plots, clustering."""
+
 import json
 import hiplot as hip
 import pandas as pd
@@ -353,6 +355,20 @@ def label_eps_nd(df, label_col, obj_names, obj_directions, epsilons, num_vars=0,
 
 
 def append_Kmeans(df, num_clusters=3, cluster_columns=None):
+    """Cluster solutions with K-Means and append a 'Cluster' column in place.
+
+    Args:
+        df: DataFrame of solutions. Modified in place — a ``"Cluster"`` column
+            containing integer cluster labels (0-indexed) is added.
+        num_clusters: Number of K-Means clusters. Defaults to 3.
+        cluster_columns: List of column names to use as features. When None,
+            all columns in ``df`` are used.
+
+    Returns:
+        tuple[pd.DataFrame, sklearn.cluster.KMeans]:
+            - The input ``df`` with the new ``"Cluster"`` column added.
+            - The fitted KMeans object (useful for inspecting centroids).
+    """
     kmeans = KMeans(n_clusters=num_clusters)
     if cluster_columns:
         kmeans.fit(df[cluster_columns])

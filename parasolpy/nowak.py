@@ -1,27 +1,31 @@
-# Nowak, K., J. Prairie, B. Rajagopalan, and U. Lall (2010),
-# A nonparametric stochastic approach for multisite disaggregation of annual to daily streamflow,
-# Water Resour. Res., 46, W08529.
+"""Nonparametric stochastic disaggregation after Nowak et al. (2010).
 
-import pandas as pd  # for dataframes and data processing
-import numpy as np  # for numerical computation
-import matplotlib.pyplot as plt  # for plotting
-import sys  # system functions
-from scipy import interpolate  # bring in only the interpolate function
-import plotly.express as px  # plotly express for fast interactive plotting
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
+Reference:
+    Nowak, K., J. Prairie, B. Rajagopalan, and U. Lall (2010),
+    A nonparametric stochastic approach for multisite disaggregation of
+    annual to daily streamflow, Water Resour. Res., 46, W08529.
+"""
+
+import numpy as np
 
 
 def choose_analog_index(rng, Z, sim_Z):
-    # inputs:
-    # rng - random number generator instance
-    # Z - input sequence of aggregated observed flows
-    # sim_Z - simulated aggregated flow (scalar)
+    """Select an analog year index using K-nearest-neighbor weighting.
 
-    # return: index of the chosen analog year from Z
+    Finds the K nearest neighbors in ``Z`` to the simulated annual flow
+    ``sim_Z`` (where ``K = floor(sqrt(len(Z)))``), then draws one index
+    with probability inversely proportional to rank distance (eq. 1 in the
+    paper).
 
-    # Calculate the distance between the yearly flows and the
-    # simulated value
+    Args:
+        rng: numpy random Generator instance (e.g. ``numpy.random.default_rng()``).
+        Z: 1-D numpy array of observed aggregated (annual) flows.
+        sim_Z: Scalar simulated aggregated flow for the current year.
+
+    Returns:
+        int: Index into ``Z`` of the chosen analog year.
+    """
+    # Calculate the distance between the yearly flows and the simulated value
     dist = np.absolute(Z - sim_Z)
 
     # inds will be the indices of the original sequence in ascending order
@@ -51,15 +55,24 @@ def choose_analog_index(rng, Z, sim_Z):
 
 
 def sim_single_year(rng, Z, p, years, sim_Z, print_results=False):
-    # inputs:
-    # rng - random number generator instance
-    # Z - input sequence of aggregated flows
-    # p - input 2d array of proportion vectors (disagg timesteps in columns)
-    # years - input sequence of years
-    # sim_Z - simulated aggregated flow (scalar)
-    # print_results - (optional) True for console output, False if not. Default False
+    """Disaggregate one simulated annual flow into sub-annual periods.
 
-    # return: sequence of simulated, disaggregated flow for one year
+    Selects an analog year via :func:`choose_analog_index`, then scales its
+    proportion vector by ``sim_Z`` to produce a disaggregated flow sequence.
+
+    Args:
+        rng: numpy random Generator instance.
+        Z: 1-D array of observed annual flows (length = number of historical years).
+        p: 2-D array of shape ``(num_years, num_periods)`` where each row is the
+            fraction of annual flow in each sub-annual period.
+        years: 1-D array of calendar years corresponding to rows of ``p``.
+        sim_Z: Scalar simulated annual flow for the year being disaggregated.
+        print_results: If True, print a one-line summary to stdout.
+
+    Returns:
+        numpy.ndarray: 1-D array of length ``num_periods`` with the disaggregated
+        flow for each sub-annual period.
+    """
 
     chosen_index = choose_analog_index(rng, Z, sim_Z)
 
@@ -80,16 +93,26 @@ def sim_single_year(rng, Z, p, years, sim_Z, print_results=False):
 
 
 def sim_multi_trace(rng, Z, p, years, sim_Z, repl=1, print_results=False):
-    # inputs:
-    # rng - random number generator instance
-    # Z - input sequence of aggregated flows
-    # p - input 2d array of proportion vectors (years in rows, periods in columns)
-    # years - input sequence of years
-    # mat_Z - simulated aggregated flow (sequences in rows, years in columns)
-    # repl - (optional) number of replicates per simulated annual sequence. Default 1
-    # print_results - (optional) True for console output, False if not. Default True
+    """Disaggregate multiple simulated annual sequences into sub-annual traces.
 
-    # return: sequence of simulated, disaggregated flow for one year
+    Calls :func:`sim_single_year` for every combination of sequence, replicate,
+    and year in ``sim_Z``, assembling results into a single output matrix.
+
+    Args:
+        rng: numpy random Generator instance.
+        Z: 1-D array of observed annual flows.
+        p: 2-D array of shape ``(num_years, num_periods)`` with proportion vectors.
+        years: 1-D array of calendar years corresponding to rows of ``p``.
+        sim_Z: 2-D array of shape ``(num_sequences, num_sim_years)`` with simulated
+            annual flows; rows are independent sequences, columns are years.
+        repl: Number of replicates generated for each row of ``sim_Z``. Defaults to 1.
+        print_results: If True, print per-year summary lines to stdout.
+
+    Returns:
+        numpy.ndarray: 2-D array of shape
+        ``(num_periods * num_sim_years, num_sequences * repl)`` containing the
+        disaggregated flows. Each column is one complete trace.
+    """
 
     # what is the shape of the proportion matrix, p?
     num_input_years, num_periods = p.shape

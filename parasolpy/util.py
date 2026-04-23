@@ -1,3 +1,5 @@
+"""Utility functions: unit conversions, path helpers, time-series pivoting, XML parsing."""
+
 import inspect
 from numbers import Real
 from os import PathLike
@@ -104,13 +106,11 @@ def pivot_timeseries_by_year(data, value_column=None, aggfunc="mean"):
     Args:
         data: pandas Series or DataFrame with a DatetimeIndex.
         value_column: Required for multi-column DataFrames; ignored for Series.
-                aggfunc: Aggregation used by pandas pivot_table when duplicate day/year entries
-                        occur. Common options include:
-                        - "mean": good default for rate-like data (for example flow in cms).
-                        - "sum": useful for additive quantities (for example daily volume totals).
-                        - "min", "max", "median", "first", "last": supported pandas
-                            aggregations depending on your use case.
-                        You can also pass any aggregation string accepted by pandas pivot_table.
+        aggfunc: Aggregation used by pandas pivot_table when duplicate day/year
+            entries occur. Common options: ``"mean"`` (good default for rate-like
+            data), ``"sum"`` (additive quantities), ``"min"``, ``"max"``,
+            ``"median"``, ``"first"``, ``"last"``. Any aggregation string
+            accepted by pandas pivot_table is valid.
     """
     if not isinstance(data, (pd.Series, pd.DataFrame)):
         raise TypeError("Input 'data' must be a pandas Series or DataFrame.")

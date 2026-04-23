@@ -1,3 +1,5 @@
+"""Dash-based interactive tradeoff explorer for multi-objective optimization results."""
+
 import argparse
 
 import pandas as pd
