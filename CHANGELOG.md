@@ -8,6 +8,8 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-04-23
+
 ### Changed
 - Release workflow migrated to GitHub Actions + PyPI Trusted Publishing.
   Publishing now triggers on publishing a GitHub Release; no PyPI API
@@ -70,7 +72,8 @@ Initial PyPI release.
   (path helpers, unit conversions, XML config parsing).
 - Self-contained example scripts under `examples/`.
 
-[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jrkasprzyk/parasolpy/releases/tag/v0.1.0
