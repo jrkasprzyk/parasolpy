@@ -1,6 +1,6 @@
 [project]
 name = "parasolpy"
-version = "0.2.1"
+version = "0.3.0"
 description = "Python tools for multi-objective decision analysis and visualization"
 authors = [
     {name = "Joseph Kasprzyk",email = "joseph.kasprzyk@colorado.edu"}
