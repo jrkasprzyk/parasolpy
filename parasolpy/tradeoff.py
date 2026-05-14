@@ -123,13 +123,13 @@ def parallel_plot_hp(df,
                                       will be used for coloring. Defaults to None.
         hide_columns (list of str, optional): A list of column names in `df` to hide from
                                           the parallel plot. Defaults to None (no columns hidden).
-      forced_ranges_columns (list of str, optional): Columns for which a forced axis
-                         range should be applied in the parallel plot.
-      force_min (list of number, optional): Minimum values for each forced-range column.
-      force_max (list of number, optional): Maximum values for each forced-range column.
-      colormap (str, optional): D3 colormap name used when `color_column` is provided.
-      invert_columns (list of str, optional): Explicit columns to invert. If provided,
-                         this takes precedence over obj_names/obj_directions.
+        forced_ranges_columns (list of str, optional): Columns for which a forced axis
+                                          range should be applied in the parallel plot.
+        force_min (list of number, optional): Minimum values for each forced-range column.
+        force_max (list of number, optional): Maximum values for each forced-range column.
+        colormap (str, optional): D3 colormap name used when `color_column` is provided.
+        invert_columns (list of str, optional): Explicit columns to invert. If provided,
+                                          this takes precedence over obj_names/obj_directions.
 
     Returns:
         hiplot.Experiment: An HiPlot experiment object configured with the parallel plot.
@@ -137,8 +137,8 @@ def parallel_plot_hp(df,
     Raises:
         TypeError: If any input is malformed (wrong types for list/string arguments).
         ValueError: If `plot_direction` is not 'bottom' or 'top', `color_column` is not
-              present in `df` (when provided), any specified column is missing,
-              or forced-range list lengths do not match.
+            present in `df` (when provided), any specified column is missing,
+            or forced-range list lengths do not match.
     """
 
     # Input Validation
