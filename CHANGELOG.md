@@ -8,6 +8,21 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- Sphinx documentation site with Read the Docs config (`.readthedocs.yaml`),
+  GitHub Actions docs workflow, user guide, API reference (autosummary),
+  examples, quickstart, installation, and CLI pages.
+- `parasolpy.moea` module scaffold.
+- `examples/_unrefactored_example_scripts/` legacy scripts ported from
+  `borgRWproblems` pending refactor.
+- `.gitattributes` enforcing LF line endings.
+
+### Changed
+- Repo-wide line-ending renormalization to LF.
+- Expanded `.gitignore`.
+- Docstring fixes in `parasolpy.ism.create_ism_traces` and
+  `parasolpy.tradeoff.parallel_plot_hp`.
+
 ## [0.2.1] — 2026-04-23
 
 ### Changed
