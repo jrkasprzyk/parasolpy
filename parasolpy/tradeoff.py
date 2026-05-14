@@ -114,8 +114,6 @@ def parallel_plot_hp(df,
                            and columns represent objectives or other attributes.
         obj_names (list of str): Names of the objective columns in `df`.
         obj_directions (list of str): Optimization direction ('minimize' or 'maximize') for each objective.
-
-    Optional Keyword Args:
         plot_direction (str, optional): Defines the direction for inverting objective axes
                                         to highlight optimal regions. Must be 'bottom'
                                         (good solutions at the bottom of the plot) or

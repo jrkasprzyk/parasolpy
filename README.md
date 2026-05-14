@@ -1,5 +1,7 @@
 # parasolpy
 
+[![Documentation Status](https://readthedocs.org/projects/parasolpy/badge/?version=latest)](https://parasolpy.readthedocs.io/en/latest/?badge=latest)
+
 Python tools for multi-objective decision analysis and visualization, continuing the
 Parasol project originally published as:
 
@@ -106,6 +108,9 @@ paper linked above.
 
 ## Development
 
+- Documentation is hosted on [Read the Docs](https://parasolpy.readthedocs.io/).
+  Build it locally with `pip install ".[docs]"` and
+  `sphinx-build -W -b html docs docs/_build/html`.
 - Cutting a release? See [RELEASING.md](RELEASING.md) for the Poetry-based
   workflow (version bump, build, publish to PyPI, tag, GitHub Release).
 - Issues and pull requests are welcome on GitHub.
