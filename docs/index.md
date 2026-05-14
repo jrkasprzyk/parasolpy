@@ -1,6 +1,6 @@
 # parasolpy
 
-`parasolpy` provides Python tools for multi-objective decision analysis and visualization, with utilities for reservoir sizing, stochastic hydrology workflows, RiverWare/Borg solution files, plotting, and interactive tradeoff exploration.
+`parasolpy` provides Python tools for multi-objective decision analysis and visualization, with utilities for reservoir sizing, stochastic hydrology workflows, Borg-RiverWare and other multiobjective optimization solution files, plotting, and interactive tradeoff exploration.
 
 Use this documentation when you want to install the package, run the examples, launch the tradeoff explorer, or look up the public API.
 
