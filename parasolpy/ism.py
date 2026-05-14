@@ -1,4 +1,4 @@
-"""Inflow Sequence Method (ISM) trace generation."""
+"""Index Sequential Method (ISM) trace generation."""
 
 import numpy as np
 
@@ -6,7 +6,7 @@ import numpy as np
 def create_ism_traces(inflow, k, trace_length):
     """Generate ISM synthetic traces from a historical inflow record.
 
-    The Inflow Sequence Method creates an ensemble of synthetic traces by
+    The Index Sequential Method creates an ensemble of synthetic traces by
     sliding a window of length ``trace_length`` over a doubled (wrap-around)
     copy of the historical record, stepping by ``k`` timesteps each time.
 
