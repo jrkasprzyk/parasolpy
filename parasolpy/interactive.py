@@ -88,7 +88,10 @@ def load_experiment_epsilons(output_folder, experiment_name, objective_names):
         raise FileNotFoundError(f"Experiment file not found: {log_path}")
 
     with open(log_path, "r", encoding="utf-8") as f:
-        record = json.load(f)
+        try:
+            record = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Cannot parse experiment file {log_path}: {e}") from e
 
     if not isinstance(record, dict) or "epsilons" not in record:
         raise ValueError(f"Experiment file is missing an 'epsilons' object: {log_path}")

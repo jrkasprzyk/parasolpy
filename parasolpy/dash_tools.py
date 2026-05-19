@@ -1,6 +1,7 @@
 """Dash-based interactive tradeoff explorer for multi-objective optimization results."""
 
 import argparse
+import warnings
 
 import pandas as pd
 import plotly.express as px
@@ -68,6 +69,11 @@ def build_tradeoff_dash_app(solutions,
 
     colorscales = px.colors.named_colorscales()
     if default_colorscale not in colorscales:
+        warnings.warn(
+            f"Colorscale {default_colorscale!r} not recognized; falling back to 'viridis'.",
+            UserWarning,
+            stacklevel=2,
+        )
         default_colorscale = "viridis"
 
     app = Dash()

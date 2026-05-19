@@ -20,8 +20,10 @@ def create_ism_traces(inflow, k, trace_length):
         tuple[numpy.ndarray, numpy.ndarray]:
             - traces: 2-D array of shape ``(trace_length, num_traces)`` where
               each column is one synthetic trace.
-            - indices: 2-D array of the same shape with the original record
-              indices used to construct each trace position.
+            - indices: 2-D array of the same shape. Values are indices into
+              the *doubled* record (``range(0, 2 * len(inflow))``), not the
+              original. Use ``indices % len(inflow)`` to map back to original
+              record positions.
     """
     # the number of traces is a known function of
     # the index k and the total length of the inflow record
