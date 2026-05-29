@@ -43,6 +43,7 @@ def choose_analog_index(rng, Z, sim_Z):
     W = np.zeros(K)
     for i in range(K):
         W[i] = (1. / (i + 1.)) / sum(1. / k for k in range(1, K + 1))
+    W = W / W.sum()
 
     # here, we only keep the K nearest neighbors based on distance
     neighbors = sorted_Z[0:K]

@@ -58,6 +58,7 @@ Source = "https://github.com/jrkasprzyk/parasolpy"
 
 [project.scripts]
 parasolpy-tradeoff = "parasolpy.dash_tools:main"
+parasolpy-rdf = "parasolpy.rdf:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
