@@ -8,6 +8,23 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- `parasolpy.rdf` module: RiverWare RDF parser (`parse_rdf`, `list_slots`,
+  exported from the package root) and RDF-to-CSV converter, exposed via the
+  new `parasolpy-rdf` CLI entry point with `info`/`slots`/`convert`
+  subcommands (wide/stacked/long/enriched output formats).
+- Bundled synthetic sample `parasolpy/data/sample_traces.rdf`, a Windows
+  CLI demo (`examples/rdf_cli_commands.bat`), and `tests/test_rdf.py`.
+
+### Changed
+- Improved date parsing to handle single-digit days and months.
+
+### Fixed
+- Hardened robustness across `nowak`, `interactive`, `tradeoff`, `ism`,
+  and `dash_tools`.
+- Renamed a variable to avoid scope confusion with the builtin `id`.
+- Docstring typo fix.
+
 ## [0.3.0] — 2026-05-14
 
 ### Added
