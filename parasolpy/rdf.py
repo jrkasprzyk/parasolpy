@@ -51,9 +51,9 @@ from pathlib import Path
 def _normalize_ts(raw: str) -> str:
     """Convert 'YYYY-M-D 24:00' → ISO date 'YYYY-MM-DD'."""
     date_part = raw.split()[0]
-    dt = datetime.strptime(date_part, "%Y-%m-%d")
+    y, m, d = (int(x) for x in date_part.split("-"))
     # RiverWare 24:00 = end of that calendar day — keep as-is
-    return dt.strftime("%Y-%m-%d")
+    return datetime(y, m, d).strftime("%Y-%m-%d")
 
 
 def _parse_preamble(lines: list[str], pos: int, end_marker: str) -> tuple[dict, int]:
