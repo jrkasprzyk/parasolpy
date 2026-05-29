@@ -1,7 +1,7 @@
 """
 Tests for parasolpy.rdf (RDF parser + CSV converter CLI).
 
-Uses a synthetic sample file in public/rw-sample-data/ (safe to commit).
+Uses a synthetic sample file in parasolpy/data/ (safe to commit).
 """
 
 from __future__ import annotations
