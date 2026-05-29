@@ -384,8 +384,8 @@ def label_eps_nd(
     eps_ids = [sol.id for sol in eps_pt]
 
     # add labels to the epsilon non-dominated solutions
-    for id in eps_ids:
-        df.at[id, label_col] = True
+    for sol_id in eps_ids:
+        df.at[sol_id, label_col] = True
 
     return df
 
