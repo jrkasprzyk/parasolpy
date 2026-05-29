@@ -41,6 +41,7 @@ plotting    : plot_trace_heatmap, plot_trace_spaghetti, plot_trace_fan_chart,
 dash_tools  : build_tradeoff_dash_app, load_dash_inputs
 interactive : prompt_experiment_name, prompt_epsilons,
               load_experiment_epsilons, prompt_starting_epsilons
+rdf         : parse_rdf, list_slots
 
 Quick start
 -----------
@@ -92,6 +93,7 @@ from parasolpy.plotting import (
 	plot_trace_monthly_seasonality,
 	plot_trace_spaghetti,
 )
+from parasolpy.rdf import list_slots, parse_rdf
 from parasolpy.reservoir import sequent_peak
 from parasolpy.tradeoff import (
 	append_Kmeans,
@@ -152,6 +154,9 @@ __all__ = [
 	"plot_trace_heatmap",
 	"plot_trace_monthly_seasonality",
 	"plot_trace_spaghetti",
+	# rdf
+	"parse_rdf",
+	"list_slots",
 	# reservoir
 	"sequent_peak",
 	# tradeoff
