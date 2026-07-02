@@ -384,10 +384,146 @@ def plot_trace_exceedance(
     return fig, ax, saved_path
 
 
+# colors for plot_archive_lifespans (categorical palette validated for
+# colorblind-safe separation on a white surface)
+_LIFESPAN_COLOR_FINAL = "#2a78d6"    # still in the archive at the end of the run
+_LIFESPAN_COLOR_REMOVED = "#1baf7a"  # dominated and removed during the run
+_LIFESPAN_COLOR_LEAKED = "#eda100"   # model file with no runtime-snapshot record
+_LIFESPAN_SHADE_RESTART = "#f0efec"  # snapshot gaps coinciding with restarts
+_INK_PRIMARY = "#0b0b0b"
+_INK_SECONDARY = "#52514e"
+_INK_MUTED = "#898781"
+_GRIDLINE = "#e1e0d9"
+
+
+def plot_archive_lifespans(
+    snapshots,
+    output_dir,
+    filename="archive_lifespan.png",
+    leaked_ids=None,
+    restart_gap_threshold=50,
+    figsize=(9, 10),
+    dpi=300,
+):
+    """Plot the birth and death of Borg archive solutions as a survival chart.
+
+    Draws one horizontal bar per solution: rows are solutions ordered by
+    birth NFE, each bar runs from the solution's birth to its death (see
+    ``parasolpy.borg_runtime.solution_lifespans`` for the death convention).
+    An archive-size panel above shares the x-axis. Snapshot gaps wider than
+    ``restart_gap_threshold`` NFE — which coincide with Borg restarts, during
+    which no runtime output is written — are shaded.
+
+    Args:
+        snapshots (list of tuple): ``(nfe, ids)`` pairs from
+            ``parasolpy.borg_runtime.parse_borg_runtime``.
+        output_dir (str | PathLike): Directory where figure will be saved.
+        filename (str, optional): Output image file name.
+        leaked_ids (list of int, optional): Solution IDs with a saved model
+            file but no snapshot record (from
+            ``parasolpy.borg_runtime.leaked_model_ids``); drawn as a third
+            category of minimum-width ticks, since only their birth is known.
+        restart_gap_threshold (int, optional): Shade snapshot gaps wider
+            than this many NFE.
+        figsize (tuple, optional): Figure size in inches.
+        dpi (int, optional): Output image DPI.
+
+    Returns:
+        tuple: (fig, (ax_size, ax), output_path)
+    """
+    from parasolpy.borg_runtime import solution_lifespans
+
+    if not snapshots:
+        raise ValueError("Input 'snapshots' cannot be empty.")
+    output_path = _resolve_output_path(output_dir, filename)
+
+    spans = solution_lifespans(snapshots)
+    nfes = np.array([nfe for nfe, _ in snapshots])
+    sizes = np.array([len(ids) for _, ids in snapshots])
+    final_nfe = nfes[-1]
+
+    if leaked_ids:
+        # leaked solutions were born and removed between snapshots, so only
+        # the birth is known; draw them as minimum-width ticks
+        leaked = pd.DataFrame(
+            {"birth": leaked_ids, "death": leaked_ids,
+             "in_final_archive": False, "leaked": True},
+            index=pd.Index(leaked_ids, name="id"),
+        )
+        spans["leaked"] = False
+        spans = pd.concat([spans, leaked])
+    else:
+        spans["leaked"] = False
+
+    # rank solutions by birth so rows read chronologically top-to-bottom
+    spans = spans.sort_index()
+    y = np.arange(len(spans))
+    width = (spans["death"] - spans["birth"]).to_numpy(dtype=float)
+    width = np.maximum(width, 0.004 * final_nfe)  # keep short lives visible
+
+    fig, (ax_size, ax) = plt.subplots(
+        2, 1, figsize=figsize, sharex=True,
+        gridspec_kw={"height_ratios": [1, 6], "hspace": 0.06},
+    )
+
+    gap_label = "restart window (no runtime output)"
+    for i in np.where(np.diff(nfes) > restart_gap_threshold)[0]:
+        ax_size.axvspan(nfes[i], nfes[i + 1], color=_LIFESPAN_SHADE_RESTART,
+                        zorder=0)
+        ax.axvspan(nfes[i], nfes[i + 1], color=_LIFESPAN_SHADE_RESTART,
+                   zorder=0, label=gap_label)
+        gap_label = None  # only one legend entry
+
+    ax_size.plot(nfes, sizes, color=_INK_SECONDARY, lw=1.5)
+    ax_size.set_ylabel("Archive size", fontsize=9, color=_INK_MUTED)
+    ax_size.text(nfes[-1], sizes[-1], f" {sizes[-1]}", fontsize=8,
+                 color=_INK_SECONDARY, va="center")
+
+    categories = [
+        (~spans["in_final_archive"] & ~spans["leaked"],
+         _LIFESPAN_COLOR_REMOVED, "removed during run"),
+        (spans["in_final_archive"], _LIFESPAN_COLOR_FINAL, "in final archive"),
+        (spans["leaked"], _LIFESPAN_COLOR_LEAKED,
+         "leaked model file (no snapshot)"),
+    ]
+    for mask, color, label in categories:
+        mask = mask.to_numpy()
+        if not mask.any():
+            continue
+        ax.barh(y[mask], width[mask], left=spans["birth"].to_numpy()[mask],
+                height=1.0, color=color, label=f"{label} ({mask.sum()})")
+
+    ax.invert_yaxis()  # earliest births at the top
+    ax.set_xlim(0, final_nfe * 1.02)
+    ax.set_xlabel("Function evaluations", fontsize=10, color=_INK_MUTED)
+    ax.set_ylabel("Solutions, ordered by birth", fontsize=10,
+                  color=_INK_MUTED)
+    ax.legend(loc="lower left", frameon=False, fontsize=9,
+              labelcolor=_INK_SECONDARY)
+
+    for axis in (ax_size, ax):
+        axis.tick_params(colors=_INK_MUTED, labelsize=8)
+        axis.grid(axis="x", color=_GRIDLINE, lw=0.6)
+        axis.set_axisbelow(True)
+        for spine in ("top", "right"):
+            axis.spines[spine].set_visible(False)
+        for spine in ("left", "bottom"):
+            axis.spines[spine].set_color(_GRIDLINE)
+
+    ax_size.set_title(
+        "Birth and death of Borg archive solutions",
+        fontsize=12, color=_INK_PRIMARY, loc="left", pad=12,
+    )
+
+    saved_path = _save_figure(fig, output_path, dpi)
+    return fig, (ax_size, ax), saved_path
+
+
 __all__ = [
     "plot_trace_heatmap",
     "plot_trace_spaghetti",
     "plot_trace_fan_chart",
     "plot_trace_monthly_seasonality",
     "plot_trace_exceedance",
+    "plot_archive_lifespans",
 ]

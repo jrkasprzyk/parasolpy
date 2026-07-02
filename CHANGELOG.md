@@ -8,6 +8,18 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- `parasolpy.borg_runtime` module: Borg MOEA runtime-file parser
+  (`parse_borg_runtime`, `parse_borg_runtime_metadata`), per-solution
+  archive lifespan analysis (`solution_lifespans`), and detection of
+  saved solution-model files orphaned by snapshot-invisible archive
+  removals (`leaked_model_ids`) — all exported from the package root.
+- `plot_archive_lifespans` in `parasolpy.plotting`: survival chart of
+  archive solution birth/death with an archive-size panel, shaded
+  restart windows, and optional leaked-model overlay.
+- Bundled sample `parasolpy/data/RunTime_NorthSouth.txt`, demo script
+  `examples/07_borg_archive_lifespan.py`, and `tests/test_borg_runtime.py`.
+
 ## [0.4.0] — 2026-05-29
 
 ### Added

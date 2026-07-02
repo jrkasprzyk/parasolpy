@@ -13,6 +13,7 @@ public status are resolved.
    parasolpy.nowak
    parasolpy.tradeoff
    parasolpy.plotting
+   parasolpy.borg_runtime
    parasolpy.file_processing
    parasolpy.util
    parasolpy.dash_tools
