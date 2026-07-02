@@ -120,6 +120,9 @@ def solution_lifespans(snapshots):
         pd.DataFrame: Indexed by solution ``id`` with columns ``birth``,
         ``death``, and ``in_final_archive``.
     """
+    if not snapshots:
+        raise ValueError("Input 'snapshots' cannot be empty.")
+
     nfes = [nfe for nfe, _ in snapshots]
     last_seen_idx = {}
     for si, (_, ids) in enumerate(snapshots):
