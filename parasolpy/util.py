@@ -15,6 +15,9 @@ def script_local_path(filename, must_exist=True, caller_file=None):
 
     Args:
         filename: File name or relative path from the script directory.
+            Both forward slashes and backslashes are accepted as separators,
+            so Windows-style paths (e.g. ``"data\\input.csv"``) work on all
+            platforms.
         must_exist: If True, raise FileNotFoundError when the resolved path does not exist.
         caller_file: Optional script path override; defaults to the caller's file.
     """
@@ -25,7 +28,8 @@ def script_local_path(filename, must_exist=True, caller_file=None):
     if not isinstance(must_exist, bool):
         raise TypeError("Input 'must_exist' must be a boolean.")
 
-    candidate = Path(filename)
+    # Normalize backslashes so Windows-style paths work on all platforms.
+    candidate = Path(str(filename).replace("\\", "/"))
     if candidate.is_absolute():
         resolved = candidate
     else:
