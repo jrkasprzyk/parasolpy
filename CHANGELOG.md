@@ -19,6 +19,13 @@ breaking changes).
   restart windows, and optional leaked-model overlay.
 - Bundled sample `parasolpy/data/RunTime_NorthSouth.txt`, demo script
   `examples/07_borg_archive_lifespan.py`, and `tests/test_borg_runtime.py`.
+- `tests/test_util_paths.py` covering `script_local_path` and `ensure_dir`,
+  and an expanded Paths section in `docs/user-guide/utilities.md`.
+
+### Fixed
+- `parasolpy.util.script_local_path` now normalizes backslash separators,
+  so Windows-style relative paths (e.g. `data\input.csv`) resolve
+  correctly on all platforms.
 
 ## [0.4.0] — 2026-05-29
 
