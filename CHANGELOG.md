@@ -8,6 +8,8 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-07-17
+
 ### Added
 - `parasolpy.borg_runtime` module: Borg MOEA runtime-file parser
   (`parse_borg_runtime`, `parse_borg_runtime_metadata`), per-solution
@@ -127,7 +129,8 @@ Initial PyPI release.
   (path helpers, unit conversions, XML config parsing).
 - Self-contained example scripts under `examples/`.
 
-[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.0...v0.2.1
