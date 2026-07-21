@@ -8,6 +8,15 @@ breaking changes).
 
 ## [Unreleased]
 
+### Fixed
+- `parasolpy.util.script_local_path` docstring now explains that writing a
+  Windows absolute path as a plain string literal (e.g. `"C:\Games\data.csv"`)
+  triggers `SyntaxWarning: invalid escape sequence` at Python parse time, and
+  documents the three safe alternatives: raw strings (`r"C:\Games\data.csv"`),
+  forward slashes (`"C:/Games/data.csv"`), and doubled backslashes
+  (`"C:\\Games\\data.csv"`).  The same guidance has been added to
+  `docs/user-guide/utilities.md`.
+
 ## [0.4.1] — 2026-07-17
 
 ### Added

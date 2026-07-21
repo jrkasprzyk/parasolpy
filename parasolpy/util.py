@@ -15,9 +15,17 @@ def script_local_path(filename, must_exist=True, caller_file=None):
 
     Args:
         filename: File name or relative path from the script directory.
-            Both forward slashes and backslashes are accepted as separators,
-            so Windows-style paths (e.g. ``"data\\input.csv"``) work on all
-            platforms.
+            Forward slashes and backslashes are both accepted as separators at
+            runtime.  However, writing a Windows path as a plain string literal
+            can trigger ``SyntaxWarning: invalid escape sequence`` from Python
+            itself when a backslash is followed by a letter that is not a
+            recognised escape character (e.g. ``\\G`` in a ``C:\\Games`` path).
+            This warning fires at *parse time*, before the function is even
+            called.  Use one of these safe forms to avoid it:
+
+            * raw string – ``r"C:\\Games\\data.csv"``
+            * forward slashes – ``"C:/Games/data.csv"``
+            * doubled backslashes – ``"C:\\\\Games\\\\data.csv"``
         must_exist: If True, raise FileNotFoundError when the resolved path does not exist.
         caller_file: Optional script path override; defaults to the caller's file.
     """
