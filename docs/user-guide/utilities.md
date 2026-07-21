@@ -30,6 +30,26 @@ output_path = script_local_path("results/output.csv", must_exist=False)
 
 `script_local_path` raises `FileNotFoundError` by default when the target does not exist.  Pass `must_exist=False` to suppress this check.
 
+#### Windows absolute paths and `SyntaxWarning`
+
+On Windows you may see `SyntaxWarning: invalid escape sequence` when passing an
+absolute path as a plain string literal.  This is a *Python parse-time* warning
+that fires before the function is called: Python treats `\G` in a path like
+`"C:\Games\data.csv"` as an unrecognised escape sequence.
+
+Use one of these safe alternatives instead:
+
+```python
+# Raw string — backslashes are taken literally, no escaping needed.
+input_path = script_local_path(r"C:\Games\data.csv")
+
+# Forward slashes — work on Windows just like backslashes.
+input_path = script_local_path("C:/Games/data.csv")
+
+# Doubled backslashes — traditional escape form.
+input_path = script_local_path("C:\\Games\\data.csv")
+```
+
 ### `ensure_dir`
 
 `ensure_dir(path)` creates a directory (and any missing parents) and returns it as a `Path` object. Calling it on an already-existing directory is safe.
