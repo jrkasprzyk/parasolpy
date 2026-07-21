@@ -8,6 +8,8 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-07-21
+
 ### Added
 - `force_numerical_columns` parameter on `parasolpy.tradeoff.parallel_plot_hp`,
   letting callers force specific columns to numeric (rather than categorical)
@@ -144,7 +146,8 @@ Initial PyPI release.
   (path helpers, unit conversions, XML config parsing).
 - Self-contained example scripts under `examples/`.
 
-[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.2.1...v0.3.0
