@@ -105,6 +105,7 @@ def parallel_plot_hp(
     force_max=None,
     colormap="interpolateViridis",
     invert_columns=None,
+    force_numerical_columns=None,
 ):
     """
     Generates an interactive parallel plot using HiPlot for visualizing solution tradeoffs.
@@ -135,6 +136,8 @@ def parallel_plot_hp(
         colormap (str, optional): D3 colormap name used when `color_column` is provided.
         invert_columns (list of str, optional): Explicit columns to invert. If provided,
                                           this takes precedence over obj_names/obj_directions.
+        force_numerical_columns (list of str, optional): Columns to explicitly set
+                                          to numeric scaling in HiPlot.
 
     Returns:
         hiplot.Experiment: An HiPlot experiment object configured with the parallel plot.
@@ -229,6 +232,19 @@ def parallel_plot_hp(
                 f"Forced-range columns {invalid_forced_cols} not found in DataFrame."
             )
 
+    if force_numerical_columns is not None:
+        if not isinstance(force_numerical_columns, list) or not all(
+            isinstance(col, str) for col in force_numerical_columns
+        ):
+            raise TypeError("Input 'force_numerical_columns' must be a list of strings.")
+        invalid_numeric_cols = [
+            col for col in force_numerical_columns if col not in df.columns
+        ]
+        if invalid_numeric_cols:
+            raise ValueError(
+                f"Columns to force numeric {invalid_numeric_cols} not found in DataFrame."
+            )
+
     if force_min is not None:
         if not isinstance(force_min, list) or not all(
             isinstance(v, (int, float)) for v in force_min
@@ -285,6 +301,11 @@ def parallel_plot_hp(
     if color_column is not None:
         exp.colorby = color_column
         exp.parameters_definition[color_column].colormap = colormap
+
+    # Force selected columns to use numeric scaling
+    if force_numerical_columns is not None:
+        for col in force_numerical_columns:
+            exp.parameters_definition[col].type = hip.ValueType.NUMERIC
 
     # Apply forced ranges when requested
     if forced_ranges_columns is not None:
