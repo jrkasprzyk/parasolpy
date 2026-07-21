@@ -54,6 +54,8 @@ and file utilities.
 | [`parasolpy.dash_tools`](parasolpy/dash_tools.py) | Interactive Dash app powering the `parasolpy-tradeoff` CLI |
 | [`parasolpy.interactive`](parasolpy/interactive.py) | Terminal prompts for epsilon-experiment workflows |
 | [`parasolpy.file_processing`](parasolpy/file_processing.py) | Borg / RiverWare solution CSV normalization |
+| [`parasolpy.borg_runtime`](parasolpy/borg_runtime.py) | Parsing and analysis of Borg MOEA runtime files |
+| [`parasolpy.rdf`](parasolpy/rdf.py) | RiverWare RDF file parsing and CSV conversion, powers the `parasolpy-rdf` CLI |
 | [`parasolpy.util`](parasolpy/util.py) | Path helpers, unit conversions, XML config parsing |
 
 ## Tradeoff explorer CLI
@@ -79,6 +81,16 @@ Common options:
 - `--colorscale NAME` — any Plotly named colorscale (default `viridis`)
 - `--host HOST` / `--port PORT` — bind address (defaults `127.0.0.1:8050`)
 - `--debug` — run Dash in debug mode
+
+## RiverWare RDF CLI
+
+Inspect or convert RiverWare `.rdf` files without writing code:
+
+```bash
+parasolpy-rdf info path/to/file.rdf
+parasolpy-rdf slots path/to/file.rdf [--series-only]
+parasolpy-rdf convert path/to/file.rdf --slot "Object.Slot" --output out.csv [--format wide|stacked|long|enriched]
+```
 
 ## Examples
 

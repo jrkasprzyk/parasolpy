@@ -8,6 +8,12 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- `force_numerical_columns` parameter on `parasolpy.tradeoff.parallel_plot_hp`,
+  letting callers force specific columns to numeric (rather than categorical)
+  HiPlot axis scaling. Defaults to all columns in `df`, so axes are numeric
+  by default unless overridden.
+
 ### Fixed
 - `parasolpy.util.script_local_path` docstring now explains that writing a
   Windows absolute path as a plain string literal (e.g. `"C:\Games\data.csv"`)
