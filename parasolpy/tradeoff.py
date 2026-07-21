@@ -137,7 +137,8 @@ def parallel_plot_hp(
         invert_columns (list of str, optional): Explicit columns to invert. If provided,
                                           this takes precedence over obj_names/obj_directions.
         force_numerical_columns (list of str, optional): Columns to explicitly set
-                                          to numeric scaling in HiPlot.
+                                          to numeric scaling in HiPlot. Defaults
+                                          to all columns in `df`.
 
     Returns:
         hiplot.Experiment: An HiPlot experiment object configured with the parallel plot.
@@ -232,7 +233,9 @@ def parallel_plot_hp(
                 f"Forced-range columns {invalid_forced_cols} not found in DataFrame."
             )
 
-    if force_numerical_columns is not None:
+    if force_numerical_columns is None:
+        force_numerical_columns = list(df.columns)
+    else:
         if not isinstance(force_numerical_columns, list) or not all(
             isinstance(col, str) for col in force_numerical_columns
         ):

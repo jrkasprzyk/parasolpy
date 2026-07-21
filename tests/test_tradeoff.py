@@ -15,6 +15,14 @@ def _sample_df():
     )
 
 
+def test_parallel_plot_hp_defaults_to_all_columns_numeric():
+    exp = parallel_plot_hp(_sample_df())
+
+    assert exp.parameters_definition["obj"].type == hip.ValueType.NUMERIC
+    assert exp.parameters_definition["few_values"].type == hip.ValueType.NUMERIC
+    assert exp.parameters_definition["category_like"].type == hip.ValueType.NUMERIC
+
+
 def test_parallel_plot_hp_force_numerical_columns_sets_numeric_type():
     exp = parallel_plot_hp(_sample_df(), force_numerical_columns=["few_values"])
 
