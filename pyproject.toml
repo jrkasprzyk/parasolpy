@@ -58,6 +58,7 @@ Source = "https://github.com/jrkasprzyk/parasolpy"
 
 [project.scripts]
 parasolpy-tradeoff = "parasolpy.dash_tools:main"
+parasolpy-runtime = "parasolpy.runtime_dashboard:main"
 parasolpy-rdf = "parasolpy.rdf:main"
 
 [build-system]

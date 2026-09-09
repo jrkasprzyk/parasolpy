@@ -8,6 +8,47 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- `parasolpy.borg_runtime` now reads the newer Borg runtime layout that
+  writes a column-header row (quoted names, e.g. `"Solution ID"
+  "Cora Min Level"`) ahead of each snapshot's data rows, alongside the
+  older layout that has no such row.
+- `has_headers` parameter on `parse_borg_runtime` and
+  `parse_borg_runtime_metadata`: `None` (default) autodetects the layout,
+  while `True`/`False` assert it and raise `ValueError` on a mismatch, so a
+  mis-specified file is reported instead of silently mis-parsed.
+- `parse_borg_runtime_columns`, which returns the data column names in file
+  order (or `None` for the older headerless layout); quoted names containing
+  spaces are preserved. Exported from the package root.
+- Bundled sample `parasolpy/data/RunTime_with-headers.txt` and tests
+  covering both layouts, including the two bundled runtime files.
+- `parse_borg_runtime_snapshots`, which parses a runtime file into
+  `Snapshot` objects that keep each archive member's data values, not only
+  its ID as `parse_borg_runtime` does. Column names come from the file's
+  header row when present, or from a `columns` argument.
+- `snapshot_delta`, reporting the `born`, `died` and `survived` solution IDs
+  between two archive snapshots.
+- New module `parasolpy.runtime_monitor` for following a run in progress:
+  `RuntimeTail` reads only the bytes appended since the last poll and emits
+  snapshots as they complete, `LeaderboardState` folds them into a sorted
+  table with per-solution born/up/down/held/died status and lingering
+  "ghost" rows for recent deaths, and `ReplaySource` serves a finished file
+  through the same interface for demos and tests. Sorting is by any data
+  column or by the built-in `SORT_ID` / `SORT_AGE` keys, in either
+  direction.
+- New module `parasolpy.runtime_dashboard` and the `parasolpy-runtime` CLI:
+  a live Dash leaderboard of the archive, with births tinted green, deaths
+  struck through in red, arrows showing movement through the sort order,
+  stat tiles, and archive-size and churn charts. `--replay` walks a finished file, `--demo` replays the
+  bundled sample.
+- `examples/08_borg_runtime_leaderboard.py`, a terminal version of the same
+  leaderboard.
+
+### Changed
+- Renamed `parasolpy/data/RunTime_NorthSouth.txt` to
+  `parasolpy/data/RunTime_no-headers_NorthSouth.txt` to name its layout;
+  `examples/07_borg_archive_lifespan.py` points at the new name.
+
 ## [0.4.2] — 2026-07-21
 
 ### Added
