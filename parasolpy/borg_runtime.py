@@ -186,17 +186,11 @@ def parse_borg_runtime_metadata(runtime_path, has_headers=None):
     path, lines = _read_lines(runtime_path)
     _resolve_has_headers(path, lines, has_headers)
 
-    patterns = {
-        "nfe": r"Function evaluations\s+(\d+)",
-        "improvements": r"Improvements\s+(\d+)",
-        "restarts": r"Restarts\s+(\d+)",
-        "population_size": r"Population size\s+(\d+)",
-        "archive_size": r"Archive size\s+(\d+)",
-    }
+    patterns = {"nfe": _NFE_PATTERN, **_META_PATTERNS}
     columns = {name: [] for name in patterns}
     for line in lines:
         for name, pattern in patterns.items():
-            match = re.match(pattern, line)
+            match = pattern.match(line)
             if match:
                 columns[name].append(int(match.group(1)))
                 break
@@ -279,3 +273,245 @@ def leaked_model_ids(models_dir, spans, pattern="Solution*.mdl"):
         if match:
             disk_ids.add(int(match.group()))
     return sorted(disk_ids - set(spans.index))
+
+
+# Per-snapshot header fields, shared by the metadata parser and the snapshot
+# assembler. "Function evaluations" is kept separate because it also acts as
+# the delimiter that starts a new snapshot.
+_NFE_PATTERN = re.compile(r"Function evaluations\s+(\d+)")
+_META_PATTERNS = {
+    "improvements": re.compile(r"Improvements\s+(\d+)"),
+    "restarts": re.compile(r"Restarts\s+(\d+)"),
+    "population_size": re.compile(r"Population size\s+(\d+)"),
+    "archive_size": re.compile(r"Archive size\s+(\d+)"),
+}
+
+
+class Snapshot:
+    """One archive snapshot with its data rows retained.
+
+    Unlike the ``(nfe, ids)`` pairs from :func:`parse_borg_runtime`, which
+    keep only solution IDs, a ``Snapshot`` carries the full archive table so
+    objective and decision-variable values can be shown alongside the IDs.
+
+    Attributes:
+        nfe (int): Function-evaluation count of the snapshot.
+        frame (pd.DataFrame): Archive members, indexed by integer solution
+            ID, one column per data field.
+        metadata (dict): Snapshot header fields present in the file, among
+            ``improvements``, ``restarts``, ``population_size`` and
+            ``archive_size``.
+    """
+
+    __slots__ = ("nfe", "frame", "metadata")
+
+    def __init__(self, nfe, frame, metadata):
+        self.nfe = nfe
+        self.frame = frame
+        self.metadata = metadata
+
+    @property
+    def ids(self):
+        """set of int: Solution IDs present in this snapshot."""
+        return set(self.frame.index)
+
+    def __repr__(self):
+        return f"Snapshot(nfe={self.nfe}, n_solutions={len(self.frame)})"
+
+
+def _parse_data_row(line):
+    """Split a data row into ``(solution_id, values)``.
+
+    Fields that are not numeric are kept as strings so a stray text column
+    cannot abort a live parse.
+    """
+    fields = line.split()
+    values = []
+    for field in fields[1:]:
+        try:
+            values.append(float(field))
+        except ValueError:
+            values.append(field)
+    return int(fields[0]), values
+
+
+class _SnapshotAssembler:
+    """Line-at-a-time state machine that emits complete :class:`Snapshot` objects.
+
+    Feeding lines one by one (rather than parsing a whole file) is what lets
+    the same logic serve both a finished file and a file Borg is still
+    appending to. A snapshot is emitted as soon as its ``Archive size`` line
+    has been matched by that many data rows, so a live reader does not have
+    to wait for the next snapshot's header to know the current one is whole.
+
+    Args:
+        columns (list of str, optional): Names for the data columns *after*
+            the solution ID. Overrides any column-header row in the file;
+            when neither is available, columns are named ``col_1``, ``col_2``,
+            and so on.
+    """
+
+    def __init__(self, columns=None):
+        self._override = list(columns) if columns is not None else None
+        self._header = None
+        self._reset()
+
+    def _reset(self):
+        self._nfe = None
+        self._metadata = {}
+        self._expected = None
+        self._rows = []
+
+    @property
+    def columns(self):
+        """list of str | None: Data column names discovered so far, if any."""
+        if self._override is not None:
+            return list(self._override)
+        return list(self._header[1:]) if self._header else None
+
+    def feed(self, line):
+        """Consume one line; return a completed :class:`Snapshot` or ``None``."""
+        line = line.strip()
+        if not line:
+            return None
+
+        match = _NFE_PATTERN.match(line)
+        if match:
+            # A new snapshot starts here; anything still buffered belonged to
+            # a partially written snapshot and is dropped.
+            self._reset()
+            self._nfe = int(match.group(1))
+            return None
+
+        if self._nfe is None:
+            return None  # text before the first snapshot header
+
+        for name, pattern in _META_PATTERNS.items():
+            match = pattern.match(line)
+            if match:
+                value = int(match.group(1))
+                self._metadata[name] = value
+                if name == "archive_size":
+                    self._expected = value
+                    if value == 0:
+                        return self._emit()
+                return None
+
+        if _is_data_row(line):
+            self._rows.append(_parse_data_row(line))
+            if self._expected is not None and len(self._rows) >= self._expected:
+                return self._emit()
+            return None
+
+        if _is_column_header(line):
+            self._header = shlex.split(line)
+        return None
+
+    def flush(self):
+        """Emit a trailing snapshot at end of input, or ``None`` if there is none.
+
+        Only for finished files. A live reader must not call this: a snapshot
+        that has not reached its declared archive size is still being written.
+        """
+        if self._nfe is None:
+            return None
+        return self._emit()
+
+    def _emit(self):
+        nfe, metadata, rows = self._nfe, self._metadata, self._rows
+        self._reset()
+
+        width = max((len(values) for _, values in rows), default=0)
+        names = self._override
+        if names is None and self._header:
+            names = list(self._header[1:])
+        if names is None:
+            names = [f"col_{i}" for i in range(1, width + 1)]
+        # Reconcile the declared names with the rows actually present, so a
+        # header that disagrees with the data cannot raise mid-run.
+        if width > len(names):
+            names = list(names) + [f"col_{i}" for i in range(len(names) + 1, width + 1)]
+        elif width:
+            names = list(names[:width])
+        else:
+            names = list(names)
+
+        index = pd.Index([sol_id for sol_id, _ in rows], name="id", dtype="int64")
+        data = [values[: len(names)] for _, values in rows]
+        frame = pd.DataFrame(data, index=index, columns=names)
+        return Snapshot(nfe, frame, metadata)
+
+
+def parse_borg_runtime_snapshots(runtime_path, has_headers=None, columns=None):
+    """Parse a Borg runtime file into snapshots that keep their data values.
+
+    This is the value-preserving counterpart to :func:`parse_borg_runtime`,
+    which returns only solution IDs. Use it when you need the archive's
+    objectives or decision variables per snapshot, for example to rank
+    archive members as a run progresses.
+
+    Args:
+        runtime_path (str | PathLike): Path to the Borg runtime text file.
+        has_headers (bool, optional): ``None`` (default) autodetects whether
+            the file carries a column-header row. Pass ``True`` or ``False``
+            to assert the layout instead; a mismatch raises ``ValueError``.
+        columns (list of str, optional): Names for the data columns after the
+            solution ID, used when the file carries no column-header row (the
+            older layout names nothing). Overrides the file's own names.
+
+    Returns:
+        list of Snapshot: One entry per snapshot, in file order.
+
+    Raises:
+        FileNotFoundError: If the runtime file does not exist.
+        ValueError: If no snapshots are found, or ``has_headers`` contradicts
+            the file's contents.
+    """
+    path, lines = _read_lines(runtime_path)
+    _resolve_has_headers(path, lines, has_headers)
+
+    assembler = _SnapshotAssembler(columns=columns)
+    snapshots = []
+    for line in lines:
+        snapshot = assembler.feed(line)
+        if snapshot is not None:
+            snapshots.append(snapshot)
+    trailing = assembler.flush()
+    if trailing is not None:
+        snapshots.append(trailing)
+
+    if not snapshots:
+        raise ValueError(f"No snapshots found in runtime file: {path}")
+    return snapshots
+
+
+def _ids_of(snapshot):
+    """Coerce a snapshot, DataFrame, or ID collection to a set of IDs."""
+    if snapshot is None:
+        return set()
+    if isinstance(snapshot, Snapshot):
+        return snapshot.ids
+    if isinstance(snapshot, pd.DataFrame):
+        return set(snapshot.index)
+    return set(snapshot)
+
+
+def snapshot_delta(previous, current):
+    """Compare two archive snapshots and report what changed.
+
+    Args:
+        previous: The earlier snapshot, as a :class:`Snapshot`, a DataFrame
+            indexed by solution ID, or any collection of IDs. ``None`` means
+            there is no earlier snapshot, so every current ID counts as born.
+        current: The later snapshot, in any of the same forms.
+
+    Returns:
+        dict: ``{"born": set, "died": set, "survived": set}`` of solution IDs.
+    """
+    before = _ids_of(previous)
+    after = _ids_of(current)
+    return {
+        "born": after - before,
+        "died": before - after,
+        "survived": after & before,
+    }

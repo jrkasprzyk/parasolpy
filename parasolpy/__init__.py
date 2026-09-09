@@ -33,8 +33,11 @@ file_processing : has_superheader, load_solutions_dataframe,
                   convert_solutions_csv_to_single_header,
                   split_solutions_dataframe, split_solutions_csv
 borg_runtime: parse_borg_runtime, parse_borg_runtime_columns,
-              parse_borg_runtime_metadata, solution_lifespans,
-              leaked_model_ids
+              parse_borg_runtime_metadata, parse_borg_runtime_snapshots,
+              snapshot_delta, solution_lifespans, leaked_model_ids
+runtime_monitor : RuntimeTail, ReplaySource, LeaderboardState,
+                  SORT_ID, SORT_AGE
+runtime_dashboard : build_monitor, build_runtime_dashboard_app
 tradeoff    : df_to_pt, label_eps_nd, append_Kmeans, parallel_plot_hp,
               load_objective_names, load_objectives_and_solutions,
               resolve_solutions_csv, normalize_for_radar,
@@ -57,6 +60,8 @@ Quick start
 CLI
 ---
   parasolpy-tradeoff OUTPUT_FOLDER [--debug]
+  parasolpy-runtime RUNTIME_FILE [--sort-column NAME] [--descending]
+  parasolpy-runtime --demo
 
 Docs / source : https://github.com/jrkasprzyk/parasolpy
 """
@@ -71,6 +76,8 @@ from parasolpy.borg_runtime import (
 	parse_borg_runtime,
 	parse_borg_runtime_columns,
 	parse_borg_runtime_metadata,
+	parse_borg_runtime_snapshots,
+	snapshot_delta,
 	solution_lifespans,
 )
 from parasolpy.dash_tools import (
@@ -106,6 +113,17 @@ from parasolpy.plotting import (
 	plot_trace_spaghetti,
 )
 from parasolpy.rdf import list_slots, parse_rdf
+from parasolpy.runtime_dashboard import (
+	build_monitor,
+	build_runtime_dashboard_app,
+)
+from parasolpy.runtime_monitor import (
+	SORT_AGE,
+	SORT_ID,
+	LeaderboardState,
+	ReplaySource,
+	RuntimeTail,
+)
 from parasolpy.reservoir import sequent_peak
 from parasolpy.tradeoff import (
 	append_Kmeans,
@@ -143,6 +161,8 @@ __all__ = [
 	"parse_borg_runtime",
 	"parse_borg_runtime_columns",
 	"parse_borg_runtime_metadata",
+	"parse_borg_runtime_snapshots",
+	"snapshot_delta",
 	"solution_lifespans",
 	"leaked_model_ids",
 	# dash_tools
@@ -176,6 +196,14 @@ __all__ = [
 	# rdf
 	"parse_rdf",
 	"list_slots",
+	# runtime_monitor / runtime_dashboard
+	"SORT_AGE",
+	"SORT_ID",
+	"RuntimeTail",
+	"ReplaySource",
+	"LeaderboardState",
+	"build_monitor",
+	"build_runtime_dashboard_app",
 	# reservoir
 	"sequent_peak",
 	# tradeoff

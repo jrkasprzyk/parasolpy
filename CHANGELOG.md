@@ -22,6 +22,27 @@ breaking changes).
   spaces are preserved. Exported from the package root.
 - Bundled sample `parasolpy/data/RunTime_with-headers.txt` and tests
   covering both layouts, including the two bundled runtime files.
+- `parse_borg_runtime_snapshots`, which parses a runtime file into
+  `Snapshot` objects that keep each archive member's data values, not only
+  its ID as `parse_borg_runtime` does. Column names come from the file's
+  header row when present, or from a `columns` argument.
+- `snapshot_delta`, reporting the `born`, `died` and `survived` solution IDs
+  between two archive snapshots.
+- New module `parasolpy.runtime_monitor` for following a run in progress:
+  `RuntimeTail` reads only the bytes appended since the last poll and emits
+  snapshots as they complete, `LeaderboardState` folds them into a sorted
+  table with per-solution born/up/down/held/died status and lingering
+  "ghost" rows for recent deaths, and `ReplaySource` serves a finished file
+  through the same interface for demos and tests. Sorting is by any data
+  column or by the built-in `SORT_ID` / `SORT_AGE` keys, in either
+  direction.
+- New module `parasolpy.runtime_dashboard` and the `parasolpy-runtime` CLI:
+  a live Dash leaderboard of the archive, with births tinted green, deaths
+  struck through in red, arrows showing movement through the sort order,
+  stat tiles, and archive-size and churn charts. `--replay` walks a finished file, `--demo` replays the
+  bundled sample.
+- `examples/08_borg_runtime_leaderboard.py`, a terminal version of the same
+  leaderboard.
 
 ### Changed
 - Renamed `parasolpy/data/RunTime_NorthSouth.txt` to

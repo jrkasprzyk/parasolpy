@@ -55,6 +55,8 @@ and file utilities.
 | [`parasolpy.interactive`](parasolpy/interactive.py) | Terminal prompts for epsilon-experiment workflows |
 | [`parasolpy.file_processing`](parasolpy/file_processing.py) | Borg / RiverWare solution CSV normalization |
 | [`parasolpy.borg_runtime`](parasolpy/borg_runtime.py) | Parsing and analysis of Borg MOEA runtime files |
+| [`parasolpy.runtime_monitor`](parasolpy/runtime_monitor.py) | Tailing a Borg runtime file mid-run and tracking archive churn |
+| [`parasolpy.runtime_dashboard`](parasolpy/runtime_dashboard.py) | Live archive leaderboard powering the `parasolpy-runtime` CLI |
 | [`parasolpy.rdf`](parasolpy/rdf.py) | RiverWare RDF file parsing and CSV conversion, powers the `parasolpy-rdf` CLI |
 | [`parasolpy.util`](parasolpy/util.py) | Path helpers, unit conversions, XML config parsing |
 

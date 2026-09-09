@@ -14,6 +14,8 @@ public status are resolved.
    parasolpy.tradeoff
    parasolpy.plotting
    parasolpy.borg_runtime
+   parasolpy.runtime_monitor
+   parasolpy.runtime_dashboard
    parasolpy.file_processing
    parasolpy.util
    parasolpy.dash_tools
