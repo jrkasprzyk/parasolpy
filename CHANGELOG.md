@@ -8,6 +8,26 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- `parasolpy.borg_runtime` now reads the newer Borg runtime layout that
+  writes a column-header row (quoted names, e.g. `"Solution ID"
+  "Cora Min Level"`) ahead of each snapshot's data rows, alongside the
+  older layout that has no such row.
+- `has_headers` parameter on `parse_borg_runtime` and
+  `parse_borg_runtime_metadata`: `None` (default) autodetects the layout,
+  while `True`/`False` assert it and raise `ValueError` on a mismatch, so a
+  mis-specified file is reported instead of silently mis-parsed.
+- `parse_borg_runtime_columns`, which returns the data column names in file
+  order (or `None` for the older headerless layout); quoted names containing
+  spaces are preserved. Exported from the package root.
+- Bundled sample `parasolpy/data/RunTime_with-headers.txt` and tests
+  covering both layouts, including the two bundled runtime files.
+
+### Changed
+- Renamed `parasolpy/data/RunTime_NorthSouth.txt` to
+  `parasolpy/data/RunTime_no-headers_NorthSouth.txt` to name its layout;
+  `examples/07_borg_archive_lifespan.py` points at the new name.
+
 ## [0.4.2] — 2026-07-21
 
 ### Added

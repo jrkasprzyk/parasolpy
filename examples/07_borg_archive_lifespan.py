@@ -22,7 +22,7 @@ from parasolpy.borg_runtime import (
 from parasolpy.plotting import plot_archive_lifespans
 from parasolpy.util import ensure_dir
 
-DATA = Path(__file__).parent.parent / "parasolpy" / "data" / "RunTime_NorthSouth.txt"
+DATA = Path(__file__).parent.parent / "parasolpy" / "data" / "RunTime_no-headers_NorthSouth.txt"
 OUT = ensure_dir(Path(__file__).parent / "_output")
 
 

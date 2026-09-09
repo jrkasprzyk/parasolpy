@@ -7,6 +7,18 @@ sizes) followed by one whitespace-delimited row per archive member. The first
 field of each data row is the solution ID, which equals the function
 evaluation (NFE) at which the solution was created.
 
+Two runtime layouts are supported. Older files (see
+``parasolpy/data/RunTime_no-headers_NorthSouth.txt``) put the data rows
+directly after the ``Archive size`` line. Newer files (see
+``parasolpy/data/RunTime_with-headers.txt``) insert a column-header row
+naming each field, with names quoted because they contain spaces::
+
+    "Solution ID" "Roberto Flood Control Level" "Cora Avg Storage" ...
+
+Both layouts are detected automatically; pass ``has_headers=True``/``False``
+to the parsers to assert one instead, and use
+:func:`parse_borg_runtime_columns` to read the column names themselves.
+
 These helpers reconstruct the birth and death of every archived solution,
 which supports questions like "how long do solutions survive in the archive?"
 and "which saved solution files should have been cleaned up?" (see
@@ -17,35 +29,128 @@ visualize the result.
 from __future__ import annotations
 
 import re
+import shlex
 from pathlib import Path
 
 import pandas as pd
 
+# Snapshot header lines, which appear in both layouts and are never data rows
+# nor column headers. The second alternative matches the per-operator
+# probability lines ("  SBX   16.67%"), whose names vary by Borg build.
+_SNAPSHOT_HEADER = re.compile(
+    r"^(?:Function evaluations|Improvements|Restarts|Population size"
+    r"|Archive size|Usage of recombination operators)\b"
+    r"|^[A-Za-z][A-Za-z0-9_-]*\s+[\d.]+\s*%$"
+)
 
-def parse_borg_runtime(runtime_path):
-    """Parse a Borg runtime file into archive snapshots.
 
-    Header lines start with a word (for example "Improvements 41") while data
-    rows start with an integer solution ID, which is how the two are told
-    apart.
+def _is_data_row(line):
+    """Return True if ``line`` is an archive data row (starts with an ID)."""
+    fields = line.split()
+    if not fields:
+        return False
+    try:
+        int(fields[0])
+    except ValueError:
+        return False
+    return True
+
+
+def _is_column_header(line):
+    """Return True if ``line`` names the data columns rather than carrying data.
+
+    A column-header row is any non-blank line that is neither a snapshot
+    header line nor a data row, so both the quoted style written by
+    Borg-RiverWare and a plain unquoted name row are recognized.
+    """
+    return bool(line) and not _SNAPSHOT_HEADER.match(line) and not _is_data_row(line)
+
+
+def _read_lines(runtime_path):
+    """Read and strip a runtime file, raising if it is missing."""
+    path = Path(runtime_path)
+    if not path.exists() or not path.is_file():
+        raise FileNotFoundError(f"Runtime file not found: {path}")
+    return path, [line.strip() for line in path.read_text().splitlines()]
+
+
+def _resolve_has_headers(path, lines, has_headers):
+    """Reconcile the caller's ``has_headers`` with what the file contains.
+
+    Args:
+        path (Path): Runtime file path, used in error messages.
+        lines (list of str): Stripped file lines.
+        has_headers (bool | None): ``None`` to autodetect, otherwise the
+            layout the caller asserts.
+
+    Returns:
+        bool: Whether the file carries a column-header row.
+
+    Raises:
+        ValueError: If ``has_headers`` contradicts the file's contents.
+    """
+    found = any(_is_column_header(line) for line in lines)
+    if has_headers is None:
+        return found
+    if has_headers and not found:
+        raise ValueError(
+            f"has_headers=True but no column-header row was found in: {path}"
+        )
+    if not has_headers and found:
+        raise ValueError(
+            f"has_headers=False but a column-header row was found in: {path}. "
+            "Pass has_headers=True (or None to autodetect)."
+        )
+    return bool(has_headers)
+
+
+def parse_borg_runtime_columns(runtime_path):
+    """Read the data column names from a Borg runtime file.
+
+    Names are taken from the first column-header row in the file and parsed
+    with :mod:`shlex`, so quoted names containing spaces (for example
+    ``"Cora Min Level"``) survive intact.
 
     Args:
         runtime_path (str | PathLike): Path to the Borg runtime text file.
+
+    Returns:
+        list of str | None: Column names in file order, or ``None`` for the
+        older layout that has no column-header row.
+    """
+    _, lines = _read_lines(runtime_path)
+    for line in lines:
+        if _is_column_header(line):
+            return shlex.split(line)
+    return None
+
+
+def parse_borg_runtime(runtime_path, has_headers=None):
+    """Parse a Borg runtime file into archive snapshots.
+
+    Snapshot header lines start with a word (for example "Improvements 41")
+    while data rows start with an integer solution ID, which is how the two
+    are told apart. A column-header row, when present, is recognized and
+    skipped; use :func:`parse_borg_runtime_columns` to read the names.
+
+    Args:
+        runtime_path (str | PathLike): Path to the Borg runtime text file.
+        has_headers (bool, optional): ``None`` (default) autodetects whether
+            the file carries a column-header row. Pass ``True`` or ``False``
+            to assert the layout instead; a mismatch raises ``ValueError``.
 
     Returns:
         list of tuple: One ``(nfe, ids)`` pair per snapshot, in file order,
         where ``nfe`` is the function-evaluation count of the snapshot and
         ``ids`` is the set of solution IDs in the archive at that point.
     """
-    path = Path(runtime_path)
-    if not path.exists() or not path.is_file():
-        raise FileNotFoundError(f"Runtime file not found: {path}")
+    path, lines = _read_lines(runtime_path)
+    _resolve_has_headers(path, lines, has_headers)
 
     snapshots = []
     nfe = None
     ids = set()
-    for line in path.read_text().splitlines():
-        line = line.strip()
+    for line in lines:
         if not line:
             continue
         if line.startswith("Function evaluations"):
@@ -54,10 +159,9 @@ def parse_borg_runtime(runtime_path):
             nfe = int(line.split()[-1])
             ids = set()
             continue
-        try:
+        if _is_data_row(line):
             ids.add(int(line.split()[0]))
-        except ValueError:
-            continue  # remaining header lines (operators, improvements, ...)
+        # else: remaining snapshot header lines and the column-header row
     if nfe is not None:
         snapshots.append((nfe, ids))
 
@@ -66,19 +170,21 @@ def parse_borg_runtime(runtime_path):
     return snapshots
 
 
-def parse_borg_runtime_metadata(runtime_path):
+def parse_borg_runtime_metadata(runtime_path, has_headers=None):
     """Parse per-snapshot header metadata from a Borg runtime file.
 
     Args:
         runtime_path (str | PathLike): Path to the Borg runtime text file.
+        has_headers (bool, optional): ``None`` (default) autodetects whether
+            the file carries a column-header row. Pass ``True`` or ``False``
+            to assert the layout instead; a mismatch raises ``ValueError``.
 
     Returns:
         pd.DataFrame: Indexed by ``nfe`` with columns ``improvements``,
         ``restarts``, ``population_size``, and ``archive_size``.
     """
-    path = Path(runtime_path)
-    if not path.exists() or not path.is_file():
-        raise FileNotFoundError(f"Runtime file not found: {path}")
+    path, lines = _read_lines(runtime_path)
+    _resolve_has_headers(path, lines, has_headers)
 
     patterns = {
         "nfe": r"Function evaluations\s+(\d+)",
@@ -88,9 +194,9 @@ def parse_borg_runtime_metadata(runtime_path):
         "archive_size": r"Archive size\s+(\d+)",
     }
     columns = {name: [] for name in patterns}
-    for line in path.read_text().splitlines():
+    for line in lines:
         for name, pattern in patterns.items():
-            match = re.match(pattern, line.strip())
+            match = re.match(pattern, line)
             if match:
                 columns[name].append(int(match.group(1)))
                 break
