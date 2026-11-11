@@ -118,10 +118,17 @@ obj_directions = ["minimize", "maximize", "minimize"]
 
 sweep = sweep_som(Z, n_samples=50)
 sweep = label_eps_nd(sweep, "eps_nd", obj_names, obj_directions, [1, 1.0, 0.01])
-parallel_plot_hp(sweep[sweep["eps_nd"]], obj_names, obj_directions).to_html("sweep.html")
+parallel_plot_hp(
+    sweep[sweep["eps_nd"]],
+    obj_names,
+    obj_directions,
+    force_numerical_columns=sweep.select_dtypes("number").columns.tolist(),
+).to_html("sweep.html")
 ```
 
 `sweep_som` draws a Latin hypercube over `y_dim`, the aspect ratio `x_dim / y_dim`, `sigma` as a fraction of the longer side, and the neighborhood function. It fits and scores each configuration and returns the table. It selects nothing: explained variance rises with the number of neurons, so the choice is a tradeoff among map size, explained variance, and topographic error.
+
+`parallel_plot_hp` gives every column a numeric axis by default, which would mislabel the string-valued `neighborhood_function`. Restricting `force_numerical_columns` to the numeric columns keeps that axis categorical.
 
 ### 2. Typical members of each neuron
 

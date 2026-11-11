@@ -48,11 +48,26 @@ _SCALE_RATIO_LIMIT = 100.0
 
 
 def _as_feature_array(data):
-    """Convert a feature table to a 2-D float array."""
+    """Convert a feature table to a finite 2-D float array."""
     X = np.asarray(data, dtype=float)
     if X.ndim != 2:
         raise ValueError("Input 'data' must be 2-D (rows = samples, columns = features).")
+    if not np.isfinite(X).all():
+        # A NaN row still gets an argmin winner from MiniSom, so it would be
+        # assigned a valid-looking neuron with a NaN distance.
+        raise ValueError("Input 'data' contains NaN or infinite values.")
     return X
+
+
+def _require_variance(X):
+    """Raise when no feature varies, which leaves explained variance undefined."""
+    # Peak-to-peak is exactly zero for identical rows; a sum of squared
+    # deviations from the floating-point mean need not be.
+    if not np.ptp(X, axis=0).any():
+        raise ValueError(
+            "Input 'data' has zero total variance (a single row, or all rows "
+            "identical), so explained variance is undefined."
+        )
 
 
 def _warn_if_unscaled(X):
@@ -120,8 +135,6 @@ def fit_som(
             ``init`` is not "pca" or "random".
     """
     X = _as_feature_array(data)
-    if not np.isfinite(X).all():
-        raise ValueError("Input 'data' contains NaN or infinite values.")
     if init not in ("pca", "random"):
         raise ValueError(f"Input 'init' must be 'pca' or 'random', got {init!r}.")
     _warn_if_unscaled(X)
@@ -172,7 +185,8 @@ def append_som(df, som, data, column="Neuron"):
         pd.DataFrame: ``df``, with the four columns added.
 
     Raises:
-        ValueError: If ``data`` and ``df`` have different numbers of rows.
+        ValueError: If ``data`` is not 2-D, contains non-finite values, or has
+            a different number of rows than ``df``.
     """
     X = _as_feature_array(data)
     if len(X) != len(df):
@@ -205,8 +219,14 @@ def som_quality(som, data):
         neuron), ``topographic_error`` (fraction of rows whose best and
         second-best neurons are not adjacent), and ``explained_variance`` in
         percent, ``100 * (1 - sum ||x - w_bmu||^2 / sum ||x - mean||^2)``.
+
+    Raises:
+        ValueError: If ``data`` is not 2-D, contains non-finite values, or has
+            zero total variance (a single row, or all rows identical), which
+            leaves ``explained_variance`` undefined.
     """
     X = _as_feature_array(data)
+    _require_variance(X)
     residual = ((X - som.quantization(X)) ** 2).sum()
     total = ((X - X.mean(axis=0)) ** 2).sum()
     return {
@@ -250,7 +270,9 @@ def sweep_som(
             [1, 1.0, 0.01],
         )
 
-    and inspect them with ``parallel_plot_hp``.
+    and inspect them with ``parallel_plot_hp``. Pass it
+    ``force_numerical_columns=sweep.select_dtypes("number").columns.tolist()``
+    so the string-valued ``neighborhood_function`` axis stays categorical.
 
     Args:
         data (array-like): Scaled feature table, shape (n_rows, n_features).
@@ -269,8 +291,13 @@ def sweep_som(
         pd.DataFrame: One row per configuration with columns ``x_dim``,
         ``y_dim``, ``n_neurons``, ``sigma``, ``neighborhood_function``,
         ``quantization_error``, ``topographic_error``, ``explained_variance``.
+
+    Raises:
+        ValueError: If ``data`` is not 2-D, contains non-finite values, or has
+            zero total variance.
     """
     X = _as_feature_array(data)
+    _require_variance(X)  # fail before the first fit, not in som_quality after it
     unit = qmc.LatinHypercube(d=4, seed=random_seed).random(n_samples)
 
     y_lo, y_hi = y_dim_range

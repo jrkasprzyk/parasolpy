@@ -20,9 +20,11 @@ breaking changes).
     a column has zero variance.
   - `append_som` assigns rows (training rows or new rows) to neurons and adds
     `Neuron`, `Neuron_x`, `Neuron_y`, and `Neuron_dist` columns. Neuron IDs
-    are 0-based: `Neuron = Neuron_y * x_dim + Neuron_x`.
+    are 0-based: `Neuron = Neuron_y * x_dim + Neuron_x`. Non-finite feature
+    values are rejected, as in `fit_som`.
   - `som_quality` returns quantization error, topographic error, and
-    explained variance.
+    explained variance. It raises on zero-variance data, where explained
+    variance is undefined.
   - `sweep_som` fits and scores a Latin hypercube sample of map
     configurations, for selection with `label_eps_nd`.
   - `plot_som_layer` draws any per-neuron value on the hexagonal or

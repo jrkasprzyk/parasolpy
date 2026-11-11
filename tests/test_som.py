@@ -175,6 +175,18 @@ def test_append_som_length_mismatch_raises(blobs):
         append_som(pd.DataFrame({"row": range(len(Z) - 1)}), som, Z)
 
 
+@pytest.mark.parametrize("bad", [np.nan, np.inf])
+def test_append_som_rejects_non_finite_rows(blobs, bad):
+    Z, _ = blobs
+    som = fit_som(Z, 4, 3)
+    held_out = Z[:5].copy()
+    held_out[2, 0] = bad
+    df = pd.DataFrame(index=range(5))
+    with pytest.raises(ValueError, match="NaN or infinite"):
+        append_som(df, som, held_out)
+    assert df.columns.empty
+
+
 def test_append_som_assigns_held_out_rows(blobs):
     Z, _ = blobs
     rng = np.random.default_rng(1)
@@ -210,6 +222,32 @@ def test_som_quality_explained_variance_matches_definition(blobs):
 
 
 # --- sweep_som -------------------------------------------------------------
+
+
+@pytest.mark.parametrize("rows", [1, 6])
+def test_som_quality_rejects_zero_variance_data(blobs, rows):
+    Z, _ = blobs
+    som = fit_som(Z, 4, 3)
+    constant = np.repeat(Z[:1], rows, axis=0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with pytest.raises(ValueError, match="zero total variance"):
+            som_quality(som, constant)
+
+
+def test_som_quality_rejects_nan(blobs):
+    Z, _ = blobs
+    som = fit_som(Z, 4, 3)
+    bad = Z.copy()
+    bad[0, 0] = np.nan
+    with pytest.raises(ValueError, match="NaN or infinite"):
+        som_quality(som, bad)
+
+
+def test_sweep_som_rejects_zero_variance_data(blobs):
+    Z, _ = blobs
+    with pytest.raises(ValueError, match="zero total variance"):
+        sweep_som(np.repeat(Z[:1], 20, axis=0), n_samples=2)
 
 
 def test_sweep_som_returns_one_row_per_configuration(blobs):
