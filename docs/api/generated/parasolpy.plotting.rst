@@ -8,6 +8,7 @@ parasolpy.plotting
 
    .. autosummary::
    
+      plot_archive_lifespans
       plot_trace_exceedance
       plot_trace_fan_chart
       plot_trace_heatmap

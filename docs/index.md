@@ -22,6 +22,7 @@ user-guide/ism
 user-guide/nowak
 user-guide/tradeoff
 user-guide/plotting
+user-guide/borg-runtime
 user-guide/file-processing
 user-guide/utilities
 ```
