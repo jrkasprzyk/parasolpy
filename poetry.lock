@@ -1652,6 +1652,17 @@ files = [
 ]
 
 [[package]]
+name = "minisom"
+version = "2.3.6"
+description = "Minimalistic implementation of the Self Organizing Maps (SOM)"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "minisom-2.3.6.tar.gz", hash = "sha256:1fca9cfeef62b221a89930ad3422b7a24a2bd66ae43ef97332e165f5975c09f1"},
+]
+
+[[package]]
 name = "myst-parser"
 version = "4.0.1"
 description = "An extended [CommonMark](https://spec.commonmark.org/) compliant parser,"
@@ -2921,4 +2932,4 @@ docs = ["myst-parser", "sphinx", "sphinx-autodoc-typehints", "sphinx-copybutton"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "c49ab5b38eb4c925142a7c6e09e38ef570b83451e28e95d13f4f533a17d59218"
+content-hash = "6a8d57b1ee14e887febfe1bcf6584b51bcd5d06b4b3f6482e43d7c8d984d04a8"
