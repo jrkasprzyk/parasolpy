@@ -1,183 +1,190 @@
 ---
-goal: Add Self-Organizing Map (SOM) clustering, diagnostics, and plotting to parasolpy, built on MiniSom
-version: 1.0
+goal: Add a small, composable Self-Organizing Map (SOM) toolkit to parasolpy, built on MiniSom
+version: 2.0
 date_created: 2026-11-11
 last_updated: 2026-11-11
 owner: Joseph Kasprzyk
 status: 'Planned'
-tags: [feature, architecture, clustering, som, brainstorm]
+tags: [feature, architecture, som, maps]
 ---
 
 # Introduction
 
 ![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
 
-This plan moves the SOM prototype code in `dev/minisomwrapper/` into a supported module, `parasolpy/som.py`. The prototype covers two jobs. `examples/basic_usage.py` is the MiniSom seeds tutorial (a rectangular U-matrix with labelled hits). `examples/crbexample/crbexample.py` clusters 500 Colorado River Basin states of the world (SOWs) by their 30-year cumulative supply traces on a 13x4 hexagonal map. The CRB folder also holds results made outside Python, apparently with R `kohonen` + `aweSOM`:
+This plan adds `parasolpy/som.py`, a general SOM toolkit that extracts the core of the MAPS framework (Pernat, Kasprzyk, Zagona 2026, *Environmental Modelling & Software* 205, 107118, doi:10.1016/j.envsoft.2026.107118; code at https://github.com/madrpernat/MAPS-Framework).
 
-- `param_metrics.csv`: 500-row random hyperparameter sweep with columns `x_dim, y_dim, x_y_ratio, n_neurons, radius, dist_fnc, neighbor_fnc, radius_fraction, err.quant, err.varratio, err.topo, err.kaski`.
-- `best_params.yaml`: the chosen configuration (`x_dim: 13`, `y_dim: 4`, `neighbor_func: gaussian`, `dist_func: sumofsquares`, `radius: 10.5357`, `radius_fraction: 0.9647`).
-- `500_sow_info.csv`: per-SOW metadata (`Scenario` ∈ {cmip5, npc_adjusted, npc_cmip3, paleo_drought, stress_test}, hydrologic statistics, `Neuron` ∈ 1..52, `Cluster` ∈ 0..11).
+The core is three steps:
 
-The goal is to make that whole workflow (fit, assign, diagnose, sweep, second-stage cluster, plot, pick representatives) run in Python inside parasolpy. It should follow the existing conventions: `append_Kmeans`-style column appending, and `plotting.py`-style `(fig, ax, output_path)` returns. Section 3 holds the brainstorm of SOM uses beyond the prototype, and Section 7 lists the open decisions that need the owner's input.
+1. **Fit** a SOM to a table of features (`fit_som`).
+2. **Assign** each row to a neuron (`append_som`).
+3. **Layer** any per-row variable onto the map as a per-neuron summary (`plot_som_layer`).
+
+Every other MAPS step (hyperparameter tuning, subsampling, grouping neurons) is optional. Each optional step is a standalone function or a short documented recipe, and users compose the steps they need.
+
+Version 2.0 of this plan records the outcome of a design review held on 2026-11-11. The public surface is six functions (version 1.0 had twelve). Section 7 lists the facts verified during that review. Section 3 lists what was cut and the trigger for adding each item later.
 
 ## 1. Requirements & Constraints
 
-- **REQ-001**: Provide `parasolpy.som.append_som(df, x_dim, y_dim, feature_columns=None, standardize=True, **som_kwargs)` that fits a MiniSom and appends integer node columns to `df`, mirroring `parasolpy.tradeoff.append_Kmeans` (`parasolpy/tradeoff.py:417`).
-- **REQ-002**: Node numbering must match the R `kohonen` convention used in `500_sow_info.csv` so legacy results stay comparable. For MiniSom node `(i, j)` (`i` = x index in `0..x_dim-1`, `j` = y index in `0..y_dim-1`), `Neuron = j * x_dim + i + 1` (1-based, x varies fastest).
-- **REQ-003**: Support `topology="hexagonal"` (default, matches CRB) and `topology="rectangular"` (matches seeds example).
-- **REQ-004**: Provide quality metrics: quantization error, topographic error, and explained variance (%) as `100 * (1 - Σ‖x − w_bmu‖² / Σ‖x − x̄‖²)`, the equivalent of `err.varratio`.
-- **REQ-005**: Provide a hyperparameter sweep that returns a `pd.DataFrame` with columns `x_dim, y_dim, n_neurons, sigma, learning_rate, neighborhood_function, activation_distance, quantization_error, topographic_error, explained_variance`.
-- **REQ-006**: Provide second-stage clustering of SOM codebook vectors into `num_clusters` groups (reproduces the `Neuron → Cluster` mapping in `500_sow_info.csv`).
-- **REQ-007**: Provide representative-member selection: for each non-empty node, return the row index of the member closest to that node's codebook vector.
-- **REQ-008**: Plot functions must follow `parasolpy/plotting.py`: signature `(..., output_dir, filename=..., figsize=..., dpi=200)`, save via `_save_figure`, return `(fig, ax, output_path)`.
+- **REQ-001**: `fit_som(data, x_dim, y_dim, ...)` trains a MiniSom and returns the `MiniSom` instance.
+- **REQ-002**: `append_som(df, som, data, column="Neuron")` assigns each row of `data` to its best-matching neuron and writes four columns to `df`: `Neuron`, `Neuron_x`, `Neuron_y`, `Neuron_dist`. The same function assigns rows the SOM never trained on.
+- **REQ-003**: Neuron IDs are 0-based with x varying fastest: `Neuron = Neuron_y * x_dim + Neuron_x`. IDs run left to right along the bottom row, then upward. The inverse is `divmod(neuron, x_dim)` → `(Neuron_y, Neuron_x)`. This matches the 0-based `Cluster` column of `append_Kmeans`. MAPS paper figures use 1-based IDs; the docs say so in one sentence.
+- **REQ-004**: The package performs no feature scaling. The caller scales `data` and passes the same scaled table to `fit_som` and `append_som`. Scaling choices (z-score, min-max, feature-group weights) are domain decisions; MAPS itself used min-max scaling with group weights 0.25 / 0.75.
+- **REQ-005**: `fit_som` emits `warnings.warn` when the ratio of the largest to the smallest column standard deviation exceeds 100, and when any column has zero variance. The message tells the caller to scale features.
+- **REQ-006**: `som_quality(som, data)` returns a dict with `quantization_error`, `topographic_error`, and `explained_variance` (percent) computed as `100 * (1 - Σ‖x − w_bmu‖² / Σ‖x − x̄‖²)`.
+- **REQ-007**: `sweep_som(data, n_samples, ...)` samples configurations by Latin hypercube, fits and scores each, and returns one DataFrame row per configuration. It contains no selection logic. Selection uses the existing `label_eps_nd` and `parallel_plot_hp` on three objectives: minimize `n_neurons`, maximize `explained_variance`, minimize `topographic_error`.
+- **REQ-008**: `plot_som_layer(som, values, output_dir, ...)` draws one value per neuron on the map grid. `values` is a `pd.Series` indexed by `Neuron`, or an array of shape `(x_dim, y_dim)`.
+- **REQ-009**: `plot_som_node_traces(som, trace_df, assignments, output_dir, ...)` draws one small subplot per neuron with that neuron's member traces.
+- **REQ-010**: Plot functions follow `parasolpy/plotting.py`: `(..., output_dir, filename=..., figsize=..., dpi=200)`, save through `_save_figure`, return `(fig, ax_or_axes, output_path)`.
 - **CON-001**: Python `>=3.12`, Poetry-managed. All commands run through `poetry run`.
-- **CON-002**: Use MiniSom (single-file, numpy-only). No R or rpy2 dependency.
-- **CON-003**: Results will not reproduce R `kohonen` numerically (different RNG, update rules, and radius schedule). Only qualitative agreement is expected.
-- **CON-004**: `random_seed` must be exposed on every function that trains a SOM. Default `0`.
-- **GUD-001**: Do not add classes or wrapper objects around `MiniSom`. Return the `MiniSom` instance directly.
-- **GUD-002**: Use `sklearn` (already a core dependency) for standardization helpers and agglomerative clustering. Add no other new libraries.
-- **PAT-001**: Public functions get Google-style docstrings (Args / Returns), matching the existing modules.
-- **PAT-002**: New public names get exported in `parasolpy/__init__.py` and listed in `__help__`.
+- **CON-002**: MiniSom is a core dependency, pinned `minisom (>=2.3.6,<3.0.0)`. Already added to `pyproject.toml` and `poetry.lock`.
+- **CON-003**: Design target is training on up to about 50,000 rows. Larger ensembles train on a random subsample and assign every row afterward.
+- **CON-004**: Training uses MiniSom's online algorithm with `use_epochs=True`. One code path.
+- **CON-005**: `random_seed` defaults to `0` in every function that trains a SOM, so figures and reported numbers are reproducible by default.
+- **CON-006**: The CRB example is a MAPS-style demo on a 500-SOW subsample. It makes no claim to reproduce the paper's figures or the R `kohonen` results.
+- **GUD-001**: No classes or wrapper objects around `MiniSom`.
+- **GUD-002**: New code uses only existing dependencies plus MiniSom: `numpy`, `pandas`, `matplotlib`, `scipy` (`scipy.stats.qmc.LatinHypercube`).
+- **GUD-003**: Use MiniSom's public API only (`winner`, `quantization`, `quantization_error`, `topographic_error`, `distance_map`, `get_weights`, `get_euclidean_coordinates`).
+- **PAT-001**: Public functions get Google-style docstrings (Args / Returns).
+- **PAT-002**: Public names are exported in `parasolpy/__init__.py`, listed in `__all__`, and named on a `som :` line in `__help__`.
+- **PAT-003**: Deliberate simplifications carry a `# ponytail:` comment that names the ceiling and the upgrade path.
 
 ## 2. Implementation Steps
 
-### Implementation Phase 1: Dependency and core fit/assign
+### Implementation Phase 1: Fit, assign, quality
 
-- GOAL-001: `parasolpy.som` exists, can fit a SOM, and can append node assignments to a DataFrame.
-
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-001 | Run `poetry add "minisom>=2.3.2,<3.0.0"` (2.3.2 is the version pinned in `dev/minisomwrapper/minisomwrapper_env.yaml`). Confirm that `pyproject.toml` `[project].dependencies` and `poetry.lock` are both updated. Placement (core vs. extra) depends on DEC-001; the default is core. | | |
-| TASK-002 | Create `parasolpy/som.py` with a module docstring and these imports: `numpy as np`, `pandas as pd`, `from minisom import MiniSom`. | | |
-| TASK-003 | Implement `fit_som(data, x_dim, y_dim, sigma=1.5, learning_rate=0.5, neighborhood_function="gaussian", topology="hexagonal", activation_distance="euclidean", num_iteration=1000, init="pca", random_seed=0)`. `data` is `np.ndarray` or `pd.DataFrame` (converted with `np.asarray(data, dtype=float)`). Build `MiniSom(x_dim, y_dim, data.shape[1], sigma=..., learning_rate=..., neighborhood_function=..., topology=..., activation_distance=..., random_seed=...)`. If `init == "pca"`, call `som.pca_weights_init(data)`. If `init == "random"`, call `som.random_weights_init(data)`. Any other value raises `ValueError`. Then call `som.train(data, num_iteration, random_order=True)` and return `som`. | | |
-| TASK-004 | Implement private `_node_number(i, j, x_dim)`, which returns `j * x_dim + i + 1` (REQ-002). Implement the public `node_to_grid(neuron, x_dim)`, which returns `((neuron - 1) % x_dim, (neuron - 1) // x_dim)`. | | |
-| TASK-005 | Implement `append_som(df, x_dim, y_dim, feature_columns=None, standardize=True, column="Neuron", **som_kwargs)`. Select `X = df[feature_columns]` (or the whole `df` when `None`). If `standardize`, set `X = (X - X.mean()) / X.std(ddof=0)` (matches the prototype's `np.std` default). Call `som = fit_som(X, x_dim, y_dim, **som_kwargs)` and compute the winners with `[som.winner(x) for x in X.to_numpy()]`. Write `df[column]` (int, REQ-002 numbering), `df[f"{column}_x"]`, and `df[f"{column}_y"]`. Return `(df, som)` (in-place mutation, same contract as `append_Kmeans`). | | |
-| TASK-006 | Export `fit_som`, `append_som`, and `node_to_grid` from `parasolpy/__init__.py`, and add a `som :` line to `__help__`. | | |
-
-### Implementation Phase 2: Diagnostics and hyperparameter sweep
-
-- GOAL-002: Users can score a SOM and replace the R `param_metrics.csv` workflow in Python.
+- GOAL-001: `parasolpy.som` can train a SOM, assign rows, and score the map.
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-007 | Implement `som_quality(som, data)` → `dict` with keys `quantization_error` (`som.quantization_error(data)`), `topographic_error` (`som.topographic_error(data)`), and `explained_variance` (REQ-004, computed with `som.quantization(data)` as the BMU weights). | | |
-| TASK-008 | Implement `sweep_som(data, n_samples=100, x_dim_range=(3, 40), y_dim_range=(2, 8), sigma_range=(0.5, 10.0), neighborhood_functions=("gaussian", "bubble"), activation_distances=("euclidean", "manhattan"), topology="hexagonal", num_iteration=1000, random_seed=0)`. Use `rng = np.random.default_rng(random_seed)` to draw `n_samples` configurations uniformly (integer dims, float sigma, categorical choices). Fit each with `fit_som(..., random_seed=random_seed)`, score it with `som_quality`, and return one DataFrame row per configuration (REQ-005 columns). Clamp `sigma` to `< max(x_dim, y_dim)`; otherwise MiniSom warns and the neighborhood saturates. | | |
-| TASK-009 | Add a `# ponytail:` comment on `sweep_som` noting that the Kaski-Lagus error (`err.kaski`) is deliberately omitted. It needs shortest-path distances over the codebook graph; add it if model selection actually needs it (see DEC-004). | | |
-| TASK-010 | Export `som_quality` and `sweep_som` from `parasolpy/__init__.py` and update `__help__`. | | |
+| TASK-001 | Add `minisom (>=2.3.6,<3.0.0)` to `[project].dependencies` and update `poetry.lock`. | ✅ | 2026-11-11 |
+| TASK-002 | Create `parasolpy/som.py` with a module docstring that cites the MAPS paper and states the fit → assign → layer core. Imports: `warnings`, `numpy as np`, `pandas as pd`, `from minisom import MiniSom`. | | |
+| TASK-003 | Implement `fit_som(data, x_dim, y_dim, sigma=1.5, learning_rate=0.5, neighborhood_function="gaussian", topology="hexagonal", num_epochs=10, init="pca", random_seed=0)`. Convert with `X = np.asarray(data, dtype=float)`. Run the REQ-005 scale check on `X.std(axis=0)`. Build `MiniSom(x_dim, y_dim, X.shape[1], sigma=..., learning_rate=..., neighborhood_function=..., topology=..., random_seed=...)`. `init="pca"` calls `som.pca_weights_init(X)`; `init="random"` calls `som.random_weights_init(X)`; any other value raises `ValueError`. Train with `som.train(X, num_epochs, random_order=True, use_epochs=True)`. Return `som`. The docstring states that the caller scales features, that `sigma` should grow with map size, and that `random_seed=0` makes runs repeatable. | | |
+| TASK-004 | Add a `# ponytail:` comment in `fit_som`: online training costs about 30 µs per row per epoch, so the practical ceiling is about 1e5 rows; upgrade path is to fit on `data.sample(n)` and assign all rows with `append_som`. Note that `MiniSom.train_batch_offline` (new in 2.3.6) is seed-independent given PCA init and is the candidate if order-independence is wanted. | | |
+| TASK-005 | Implement `append_som(df, som, data, column="Neuron")`. Convert `X = np.asarray(data, dtype=float)`. Raise `ValueError` when `len(X) != len(df)`. Read `x_dim = som.get_weights().shape[0]`. Compute winners with `[som.winner(x) for x in X]` and distances with `np.linalg.norm(X - som.quantization(X), axis=1)`. Write `df[f"{column}_x"]`, `df[f"{column}_y"]`, `df[column] = y * x_dim + x` (int), and `df[f"{column}_dist"]` (float). Return `df` (mutated in place). Rows of `data` align with rows of `df` by position. | | |
+| TASK-006 | Add a `# ponytail:` comment in `append_som`: the `som.winner` loop handles about 1e6 rows per minute; upgrade path is `scipy.spatial.distance.cdist(X, codes).argmin(axis=1)`. | | |
+| TASK-007 | Implement `som_quality(som, data)` → `dict` with `quantization_error` (`som.quantization_error(X)`), `topographic_error` (`som.topographic_error(X)`), and `explained_variance` (REQ-006, using `som.quantization(X)`). | | |
+| TASK-008 | Export `fit_som`, `append_som`, `som_quality` from `parasolpy/__init__.py`; add them to `__all__` under a `# som` comment; add a `som :` line to `__help__`. | | |
+| TASK-009 | Write the Phase 1 tests in `tests/test_som.py` (TEST-001 through TEST-007). | | |
 
-### Implementation Phase 3: Second-stage clustering and representatives
+### Implementation Phase 2: Sweep and plots
 
-- GOAL-003: Reduce the map to a few macro-clusters and pick one representative member per node.
-
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-011 | Implement `cluster_som_nodes(som, num_clusters, linkage="ward")` → `np.ndarray` of shape `(x_dim * y_dim,)` that maps `Neuron - 1` to a cluster label (0-based). Use `sklearn.cluster.AgglomerativeClustering(n_clusters=num_clusters, linkage=linkage)` on `som.get_weights().reshape(-1, n_features)`. The reshape order must match REQ-002: reshape after `np.transpose(weights, (1, 0, 2))` so the flat index is `j * x_dim + i`. | | |
-| TASK-012 | Extend `append_som` with `num_clusters=None`. When it is set, also write `df["Cluster"] = labels[df[column] - 1]` and return `(df, som)` unchanged otherwise. | | |
-| TASK-013 | Implement `som_representatives(som, data, index=None)` → `pd.Series` indexed by `Neuron` whose values are the row label (from `index`, or the positional index) of the member with the smallest Euclidean distance to its node's codebook vector. Empty nodes are omitted. | | |
-| TASK-014 | Export `cluster_som_nodes` and `som_representatives` and update `__help__`. | | |
-
-### Implementation Phase 4: Plotting
-
-- GOAL-004: Static SOM figures that match `parasolpy/plotting.py` conventions.
+- GOAL-002: Users can explore map configurations and draw layers and per-neuron traces.
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-015 | In `parasolpy/som.py`, implement private `_draw_grid(ax, som, values, cmap, alpha)`. For hexagonal topology, draw `matplotlib.patches.RegularPolygon` hexagons at `som.get_euclidean_coordinates()` with y scaled by `np.sqrt(3) / 2` and `radius=0.95 / np.sqrt(3)` (lifted from `crbexample.py`). For rectangular topology, use `ax.pcolormesh(values.T)`. Return the `ScalarMappable` for the colorbar. | | |
-| TASK-016 | Implement `plot_som_umatrix(som, output_dir, filename="som_umatrix.png", data=None, labels=None, cmap="Blues", figsize=(10, 6), dpi=200)`. Background = `som.distance_map()`. If `data` is given, overlay a jittered marker per sample at its BMU, colored by `labels` (categorical) when given. Return `(fig, ax, output_path)`. | | |
-| TASK-017 | Implement `plot_som_hits(som, data, output_dir, filename="som_hits.png", ...)`. Color = `som.activation_response(data)` and annotate each cell with its count. | | |
-| TASK-018 | Implement `plot_som_component_planes(som, feature_names, output_dir, filename="som_components.png", ncols=4, ...)`. Draw one subplot per feature, colored by `som.get_weights()[:, :, k]`. Return `(fig, axes, output_path)`. | | |
-| TASK-019 | Implement `plot_som_node_traces(trace_df, assignments, x_dim, y_dim, output_dir, filename="som_node_traces.png", ...)`. `trace_df` uses the `plotting.py` wide format (rows = time, columns = traces). `assignments` is a `pd.Series` that maps trace column → `Neuron`. Draw a `y_dim × x_dim` subplot grid (row `y_dim-1-j` so `j=0` sits at the bottom), with grey member traces and a black mean per node. Reuse `_validate_trace_dataframe` from `parasolpy/plotting.py`. | | |
-| TASK-020 | Import `_save_figure` and `_resolve_output_path` from `parasolpy.plotting`. Do not duplicate them. | | |
-| TASK-021 | Export all four `plot_som_*` functions and update `__help__`. | | |
+| TASK-010 | Implement `sweep_som(data, n_samples=50, y_dim_range=(3, 6), x_y_ratio_range=(1.0, 4.0), sigma_fraction_range=(0.1, 0.5), neighborhood_functions=("gaussian", "bubble"), topology="hexagonal", num_epochs=10, random_seed=0)`. Draw `scipy.stats.qmc.LatinHypercube(d=4, seed=random_seed).random(n_samples)`. Map the four unit columns to: integer `y_dim` (inclusive range), float `x_y_ratio`, float `sigma_fraction`, and a categorical neighborhood function. Derive `x_dim = max(y_dim, round(y_dim * x_y_ratio))` and `sigma = sigma_fraction * max(x_dim, y_dim)`. For `"bubble"`, set `sigma = max(1, round(sigma))` because MiniSom warns on non-integer bubble widths. Fit each configuration with `fit_som(..., random_seed=random_seed)`, score with `som_quality`, and return a DataFrame with columns `x_dim, y_dim, n_neurons, sigma, neighborhood_function, quantization_error, topographic_error, explained_variance`. | | |
+| TASK-011 | In the `sweep_som` docstring, state that `explained_variance` rises with `n_neurons`, so selection is a multi-objective choice, and show the `label_eps_nd` call from REQ-007. | | |
+| TASK-012 | Implement `plot_som_layer(som, values, output_dir, filename="som_layer.png", annotate=None, cmap="viridis", colorbar_label=None, vmin=None, vmax=None, figsize=None, dpi=200)`. Accept `values` as a Series indexed by `Neuron` (reindex to `range(x_dim * y_dim)`, then map to grid with REQ-003) or as an array of shape `(x_dim, y_dim)`. Read cell centers from `som.get_euclidean_coordinates()` and use them unchanged. Draw one `matplotlib.patches.RegularPolygon` per neuron: hexagonal topology uses `numVertices=6, radius=0.95 / np.sqrt(3)`; rectangular topology uses `numVertices=4, radius=0.95 / np.sqrt(2), orientation=np.pi / 4`. Neurons with NaN draw in light gray. `annotate="value"` prints the value in each cell; `annotate="id"` prints the neuron ID. Set equal aspect, add a colorbar, and return `(fig, ax, output_path)`. | | |
+| TASK-013 | Implement `plot_som_node_traces(som, trace_df, assignments, output_dir, filename="som_node_traces.png", background_df=None, sharey=True, color="tab:blue", figsize=None, dpi=200)`. `trace_df` uses the `plotting.py` wide format (rows = time, columns = traces). `assignments` is a Series mapping trace column → `Neuron`. Build a `y_dim × x_dim` subplot grid and place neuron `(x, y)` at row `y_dim - 1 - y`, column `x`, so the layout matches `plot_som_layer`. In each panel, draw `background_df` (when given) in light gray, then member traces in `color`, then the member mean in black. Title each panel with its neuron ID. Validate with `_validate_trace_dataframe`. The docstring states that the grid is rectangular and omits the hexagonal half-row offset. Return `(fig, axes, output_path)`. | | |
+| TASK-014 | Import `_save_figure`, `_resolve_output_path`, and `_validate_trace_dataframe` from `parasolpy.plotting`. | | |
+| TASK-015 | Export `sweep_som`, `plot_som_layer`, `plot_som_node_traces`; update `__all__` and `__help__`. | | |
+| TASK-016 | Write the Phase 2 tests (TEST-008 through TEST-012). | | |
 
-### Implementation Phase 5: Example, docs, prototype retirement
+### Implementation Phase 3: Example, docs, prototype retirement, release
 
-- GOAL-005: A runnable CRB example replaces `dev/minisomwrapper`, and the docs cover the module.
+- GOAL-003: A runnable CRB demo and a docs page cover the module; `dev/minisomwrapper/` is gone.
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-022 | Move `dev/minisomwrapper/examples/crbexample/500_sow_cumulative_supply.csv` and `500_sow_info.csv` to `examples/data/crb_500_sow/` with `git mv`. Do not move `_scaled.csv` (`append_som(standardize=True)` replaces it). Do not move `param_metrics.csv` (`sweep_som` regenerates it). | | |
-| TASK-023 | Create `examples/08_som_sow_clustering.py`. Load the supply CSV and transpose it (rows = SOW, columns = year). Join `500_sow_info.csv` without its `Neuron` and `Cluster` columns. Run `sweep_som(n_samples=20)` and print the top 5 rows by `explained_variance`. Run `append_som(x_dim=13, y_dim=4, num_clusters=12)`. Print `pd.crosstab(df["Cluster"], df["Scenario"])`. Write `plot_som_umatrix` (labels = `Scenario`), `plot_som_hits`, and `plot_som_node_traces` to `examples/_output/`. Print `som_representatives(...)`. Use `script_local_path` for all paths, following existing examples. | | |
-| TASK-024 | Create `docs/user-guide/som.md` and `docs/examples/som.md`, and add both to their toctrees in `docs/index.md` / `docs/examples/index.md`. Run `sphinx-apidoc` or add `docs/api/generated/parasolpy.som.rst`, matching the existing generated files. | | |
-| TASK-025 | Add a `## [Unreleased]` → `### Added` entry for `parasolpy.som` to `CHANGELOG.md`. | | |
-| TASK-026 | Delete `dev/minisomwrapper/` (`__init__.py`, `minisomwrapper_env.yaml`, `examples/basic_usage.py`, `examples/crbexample/crbexample.py`, `best_params.yaml`, `param_metrics.csv`, `500_sow_cumulative_supply_scaled.csv`) after TASK-023 runs successfully. This is gated on DEC-005. | | |
+| TASK-017 | `git mv` `dev/minisomwrapper/examples/crbexample/500_sow_cumulative_supply.csv` and `500_sow_info.csv` to `examples/data/crb_500_sow/`. Remove the legacy `Neuron` and `Cluster` columns from the moved `500_sow_info.csv`; they describe a map trained in R. | | |
+| TASK-018 | Create `examples/data/crb_500_sow/README.md`: 500 states of the world subsampled from the MAPS ensemble; units MAF; years 2027–2056; `supply[t, k] = InitCombinedStorage_k + cumsum(LeesFerryFlow[Trace_k] − demand_k)`; column `k` of the supply file corresponds to row `k` of the info file; citation of Pernat et al. (2026) and the MAPS-Framework repository (MIT). | | |
+| TASK-019 | Create `examples/08_som_maps_demo.py`. Load both CSVs. Set the supply columns to `info["Trace"]` with a comment noting positional alignment, then transpose so rows are SOWs. Z-score the 30 year columns explicitly. Run `fit_som(Z, 13, 4)`, `append_som(info, som, Z)`, and print `som_quality`. Write layers for `Median`, `demand`, and `InitCombinedStorage` via `info.groupby("Neuron")[col].mean()`, a hits layer via `info["Neuron"].value_counts()` with `annotate="value"`, and `plot_som_node_traces` with the full ensemble as `background_df`. Run `sweep_som(Z, n_samples=30)`, label with `label_eps_nd`, and print the non-dominated rows. Use `script_local_path` and write to `examples/_output/`. | | |
+| TASK-020 | Create `docs/user-guide/som.md`. Open with the MAPS citation and a sentence that the steps are composable. Section "Core": fit → assign → layer, including a scaling note and the Vesanto starting hint for map size (about `5 * sqrt(n_rows)` neurons). Section "Optional recipes", each standalone: (1) sweep and non-dominated selection; (2) typical members, `df.sort_values("Neuron_dist").groupby("Neuron").head(n)`; (3) spread members, `df.groupby("Neuron").sample(...)` with a guard for neurons holding fewer than `n` rows; (4) grouping neurons with `sklearn.cluster.AgglomerativeClustering` on `som.get_weights().transpose(1, 0, 2).reshape(-1, n_features)`; (5) U-matrix (`som.distance_map()`), hits (`value_counts()`), and component planes (`som.get_weights()[:, :, k]`) through `plot_som_layer`; (6) training on a subsample and assigning all rows; (7) projecting new data with the training set's scaling; (8) feature-group weights by multiplying columns before fitting. | | |
+| TASK-021 | Create `docs/examples/som.md` for the demo script and `docs/api/generated/parasolpy.som.rst` matching the existing generated files. Add the pages to the toctrees in `docs/index.md`, `docs/examples/index.md`, and `docs/api/index.rst`. | | |
+| TASK-022 | Delete `dev/minisomwrapper/` in full after TASK-019 runs cleanly. Git history keeps the prototype. | | |
+| TASK-023 | Add the `parasolpy.som` entry under `### Added` in `CHANGELOG.md`, note the new MiniSom core dependency, and bump the version to `0.5.0` in `pyproject.toml`. | | |
 
 ## 3. Alternatives
 
-- **ALT-001**: Wrap MiniSom in a `SomModel` class that holds the scaler, codebook, and assignments. Rejected: it adds a second API to learn, and `MiniSom` is already a usable object. If DEC-003 needs to map new data, the scaler can be returned instead.
-- **ALT-002**: Call R `kohonen`/`aweSOM` through `rpy2` to exactly reproduce the legacy results. Rejected: it requires an R install, Windows support is fragile, and CON-003 accepts qualitative parity.
-- **ALT-003**: `sklearn-som` or `somoclu`. Rejected: `sklearn-som` has no hexagonal topology or U-matrix. `somoclu` needs compiled binaries and is overkill for maps of 500 rows and about 50 nodes.
-- **ALT-004**: Put SOM functions in `parasolpy/tradeoff.py` beside `append_Kmeans`. Rejected: `tradeoff.py` is already about 750 lines, and SOM use spans traces as well as tradeoffs. A separate `som.py` keeps the imports local.
-- **ALT-005**: Interactive Plotly/Dash SOM (hover a node to see its traces and SOW metadata). Deferred; it fits the existing `dash_tools.py` well and is a good Phase 6 once the static API settles.
+Decisions made in the 2026-11-11 review, each with the trigger for revisiting.
 
-**Brainstorm: other SOM uses parasolpy could enable** (candidates only; none are scheduled)
+- **ALT-001 Named plot wrappers** (`plot_som_umatrix`, `plot_som_hits`, `plot_som_component_planes`): replaced by `plot_som_layer` plus docs recipes. Add a wrapper when users need sample-marker overlays on the U-matrix or a multi-panel component grid in one figure.
+- **ALT-002 `cluster_som_nodes` and a `Cluster` column**: cut. MAPS analyzes at neuron level throughout. The docs carry a three-line recipe. Add a function when the recipe gets copied into a second project.
+- **ALT-003 `som_representatives` and conditioned Latin hypercube sampling**: replaced by the `Neuron_dist` column and two pandas recipes. cLHS needs a new dependency or about 100 lines of simulated annealing. Add it when random within-neuron sampling proves inadequate on a real case.
+- **ALT-004 Scaling inside the package** (`standardize=True`): cut. It blocked projection of new data and imposed z-scoring on workflows that need other scaling.
+- **ALT-005 One-call fit-and-append** (the `append_Kmeans` shape): replaced by the fit / assign split so one function serves training rows and new rows.
+- **ALT-006 R `kohonen` numbering and numeric parity**: dropped. A differently trained map gives different neurons, so matching IDs would mislead.
+- **ALT-007 Kaski-Lagus error and an `activation_distance` sweep axis**: dropped. MAPS abandoned both; Euclidean distance is fixed.
+- **ALT-008 Successive non-dominated pruning**: skipped. It exists to make tuning affordable on millions of rows; at the CON-003 scale every configuration trains on the full table.
+- **ALT-009 Automatic map-size heuristic**: skipped. `x_dim` and `y_dim` are required arguments; the docs give a starting hint and `sweep_som` handles the search.
+- **ALT-010 Batch training** (`train_batch_offline`): deferred until it has more field time. Measured on synthetic 500×30 data: 78.6 % explained variance and topographic error 0.058, against 82.9 % and 0.114 for online training.
+- **ALT-011 MiniSom as an optional extra**: rejected. `parasolpy/__init__.py` imports every submodule eagerly, so an extra would need import guards and a doubled test matrix. If MiniSom loses maintenance, vendor its single MIT file.
+- **ALT-012 Wrapper class around MiniSom, `rpy2`, `sklearn-som`, `somoclu`**: rejected in version 1.0 of this plan; unchanged.
+- **ALT-013 Interactive Plotly/Dash map** (hover a neuron to see traces and metadata): deferred until the static API settles; fits `dash_tools.py`.
 
-- **IDEA-001 Pareto-set clustering**: `append_som(solutions, feature_columns=objective_names)`, then `parallel_plot_hp(..., color_by="Neuron")`. This is a topology-preserving alternative to `append_Kmeans`. It costs no extra code beyond Phase 1, just a docs example.
-- **IDEA-002 Representative-SOW subsetting**: `som_representatives` reduces 500 SOWs to ≤52 for expensive RiverWare/Borg re-evaluation. It is in scope (TASK-013).
-- **IDEA-003 Scenario discovery**: cross-tab nodes/clusters against robustness metrics or vulnerability flags (`pd.crosstab` / `groupby`). It needs only docs, no new function.
-- **IDEA-004 RDF → SOM pipeline**: `parse_rdf` → wide trace DataFrame → transpose → `append_som`. This ties `rdf.py` to SOM; it is a docs example.
-- **IDEA-005 Generated-trace validation**: train on observed or paleo traces, then project ISM (`ism.py`) or Nowak (`nowak.py`) synthetic traces onto the map and compare hit distributions. This needs DEC-003 (persisting the scaler).
-- **IDEA-006 Borg archive evolution**: map `borg_runtime` snapshots onto a fixed SOM to see how the archive moves across objective space over NFE.
-- **IDEA-007 Kaski-Lagus error and other quality metrics** (DEC-004).
+Uses that need no new code once Phases 1–2 land: Pareto-set clustering colored by `Neuron` in `parallel_plot_hp`; scenario discovery via `pd.crosstab` on neurons; `parse_rdf` output fed to `fit_som`; projecting ISM or Nowak synthetic traces onto a map trained on observed data; mapping `borg_runtime` archive snapshots onto a fixed map.
 
 ## 4. Dependencies
 
-- **DEP-001**: `minisom>=2.3.2,<3.0.0` (pure Python and numpy; required for `topology="hexagonal"`, `get_euclidean_coordinates`, and `convert_map_to_euclidean`).
-- **DEP-002**: `scikit-learn` (existing core dependency) for `AgglomerativeClustering`.
-- **DEP-003**: `matplotlib` and `numpy`/`pandas` (existing).
-- **DEP-004**: `parasolpy.plotting` private helpers `_save_figure`, `_resolve_output_path`, and `_validate_trace_dataframe` (TASK-019, TASK-020).
+- **DEP-001**: `minisom (>=2.3.6,<3.0.0)`. Pure Python, single file, needs only numpy. Installed.
+- **DEP-002**: `scipy` (existing) for `scipy.stats.qmc.LatinHypercube`.
+- **DEP-003**: `numpy`, `pandas`, `matplotlib` (existing).
+- **DEP-004**: `parasolpy.plotting` private helpers `_save_figure`, `_resolve_output_path`, `_validate_trace_dataframe`.
+- **DEP-005**: `parasolpy.tradeoff.label_eps_nd` and `parallel_plot_hp`, used by the example and docs for sweep selection.
 
 ## 5. Files
 
-- **FILE-001**: `parasolpy/som.py`: new module (all phases).
-- **FILE-002**: `parasolpy/__init__.py`: exports and `__help__` (TASK-006, 010, 014, 021).
-- **FILE-003**: `pyproject.toml`, `poetry.lock`: MiniSom dependency (TASK-001).
-- **FILE-004**: `tests/test_som.py`: new tests (Section 6).
-- **FILE-005**: `examples/08_som_sow_clustering.py`: new example (TASK-023).
-- **FILE-006**: `examples/data/crb_500_sow/500_sow_cumulative_supply.csv`, `500_sow_info.csv`: moved data (TASK-022).
-- **FILE-007**: `docs/user-guide/som.md`, `docs/examples/som.md`, `docs/api/generated/parasolpy.som.rst`, `docs/index.md`, `docs/examples/index.md` (TASK-024).
-- **FILE-008**: `CHANGELOG.md` (TASK-025).
-- **FILE-009**: `dev/minisomwrapper/**`: removed (TASK-026).
+- **FILE-001**: `parasolpy/som.py`: new module.
+- **FILE-002**: `parasolpy/__init__.py`: exports, `__all__`, `__help__`.
+- **FILE-003**: `pyproject.toml`, `poetry.lock`: MiniSom dependency (done) and version bump to `0.5.0`.
+- **FILE-004**: `tests/test_som.py`: new tests.
+- **FILE-005**: `examples/08_som_maps_demo.py`: new example.
+- **FILE-006**: `examples/data/crb_500_sow/500_sow_cumulative_supply.csv`, `500_sow_info.csv`, `README.md`.
+- **FILE-007**: `docs/user-guide/som.md`, `docs/examples/som.md`, `docs/api/generated/parasolpy.som.rst`, `docs/index.md`, `docs/examples/index.md`, `docs/api/index.rst`.
+- **FILE-008**: `CHANGELOG.md`.
+- **FILE-009**: `dev/minisomwrapper/**`: removed.
 
 ## 6. Testing
 
-All tests live in `tests/test_som.py` and use synthetic data: three Gaussian blobs, 30 rows each, 4 features, built with `np.random.default_rng(0)`. Run them with `poetry run pytest tests/test_som.py`.
+Tests live in `tests/test_som.py` and use synthetic data: three Gaussian blobs, 30 rows each, 4 features, from `np.random.default_rng(0)`. Plot tests use the Agg backend. Run with `poetry run pytest tests/test_som.py`.
 
-- **TEST-001**: `fit_som` returns `MiniSom`, and `get_weights().shape == (x_dim, y_dim, n_features)`.
+- **TEST-001**: `fit_som` returns a `MiniSom` whose `get_weights().shape == (x_dim, y_dim, n_features)`.
 - **TEST-002**: `fit_som(init="bogus")` raises `ValueError`.
-- **TEST-003**: `append_som` adds `Neuron`, `Neuron_x`, and `Neuron_y`. The values satisfy `1 <= Neuron <= x_dim*y_dim` and `Neuron == Neuron_y * x_dim + Neuron_x + 1`.
-- **TEST-004**: The round trip `node_to_grid(_node_number(i, j, x), x) == (i, j)` holds for all nodes of a 13x4 grid.
-- **TEST-005**: Determinism: two `append_som` calls with the same `random_seed` produce identical `Neuron` columns.
-- **TEST-006**: Blob separation: with a 6x4 map, each blob's rows occupy a node set disjoint from the other blobs' rows.
-- **TEST-007**: `som_quality` returns all three keys, and `0 <= explained_variance <= 100`.
-- **TEST-008**: `sweep_som(n_samples=3)` returns 3 rows with the REQ-005 columns and `sigma < max(x_dim, y_dim)` in every row.
-- **TEST-009**: `cluster_som_nodes(som, 3)` returns length `x_dim*y_dim` with exactly 3 unique labels. On blob data, `append_som(num_clusters=3)` gives an adjusted Rand index ≥ 0.9 against the true blob labels (`sklearn.metrics.adjusted_rand_score`).
-- **TEST-010**: Every value in `som_representatives` is a member of its own node.
-- **TEST-011**: Each `plot_som_*` function, run in `tmp_path`, returns a 3-tuple whose path exists. Use the `matplotlib.use("Agg")` pattern from the existing plotting tests, or set it at module top.
-- **TEST-012**: `tests/test_package.py` still passes, which means the new names are importable from `parasolpy`.
-- **TEST-013**: `poetry run python examples/08_som_sow_clustering.py` exits with code 0 and writes the three PNGs to `examples/_output/`.
+- **TEST-003**: `fit_som` warns when one column is multiplied by 1000, warns on a zero-variance column, and stays silent on z-scored data.
+- **TEST-004**: `append_som` adds four columns; `0 <= Neuron < x_dim * y_dim`; `Neuron == Neuron_y * x_dim + Neuron_x`; `Neuron_dist >= 0`. A length mismatch between `df` and `data` raises `ValueError`.
+- **TEST-005**: A SOM trained on 60 rows assigns the 30 held-out rows through `append_som` and yields valid IDs.
+- **TEST-006**: Two `fit_som` calls with the same `random_seed` give identical weights. On a 6×4 map, each blob occupies a neuron set disjoint from the other blobs.
+- **TEST-007**: `som_quality` returns the three keys and `0 <= explained_variance <= 100`.
+- **TEST-008**: `sweep_som(n_samples=3)` returns 3 rows with the REQ-007 columns; every `"bubble"` row has an integer `sigma >= 1`; `x_dim >= y_dim` in every row.
+- **TEST-009**: `plot_som_layer` writes a file in `tmp_path` and returns a 3-tuple for a Series input, an `(x_dim, y_dim)` array input, each `annotate` mode, and both topologies.
+- **TEST-010**: Hex geometry guard: for a hexagonal map, patch centers drawn by `plot_som_layer` in adjacent rows differ in y by `sqrt(3) / 2` (tolerance 1e-9).
+- **TEST-011**: `plot_som_node_traces` writes a file, returns axes of shape `(y_dim, x_dim)`, and accepts `background_df`.
+- **TEST-012**: `tests/test_package.py` passes, confirming the new names import from `parasolpy`.
+- **TEST-013**: `poetry run python examples/08_som_maps_demo.py` exits 0 and writes its PNGs to `examples/_output/`.
 
 ## 7. Risks & Assumptions
 
-- **RISK-001**: The R `best_params.yaml` values do not translate one-to-one. R `radius` uses kohonen's linear-decay radius in grid units, while MiniSom `sigma` is a Gaussian width with asymptotic decay. R `dist_fnc: sumofsquares` maps to MiniSom `activation_distance="euclidean"` (same BMU ordering). Mitigation: re-select parameters with `sweep_som` instead of copying R values.
-- **RISK-002**: MiniSom's hexagonal `distance_map` and `topographic_error` behavior changed across 2.3.x releases. Mitigation: pin `>=2.3.2` and run TEST-011 in CI.
-- **RISK-003**: `sweep_som` at 500 samples × 1000 iterations on 500×30 data takes minutes. Mitigation: the example uses `n_samples=20`, and the docs note the cost. Add `joblib` parallelism only if users ask for it.
-- **ASSUMPTION-001**: The legacy `Neuron` column in `500_sow_info.csv` uses kohonen's 1-based, x-fastest numbering. This is consistent with its observed range of 1..52 on a 13x4 map, but it has not been verified against the R script.
-- **ASSUMPTION-002**: `Cluster` in `500_sow_info.csv` (0..11) came from hierarchical clustering of the codebook. TASK-011 assumes Ward linkage.
+**Verified on 2026-11-11 against MiniSom 2.3.6**
 
-**Open decisions (owner input needed before execution)**
+- **FACT-001**: MiniSom already scales hexagonal y-coordinates by `sqrt(3) / 2`; the measured row pitch is 0.866. The prototype `crbexample.py` applied that factor a second time, which gives a pitch of 0.75 and overlapping rows. `plot_som_layer` uses the coordinates unchanged, and TEST-010 guards this.
+- **FACT-002**: `use_epochs` and hexagonal `topographic_error` exist from 2.3.2 onward; `topographic_error` and `distance_map` are byte-identical between 2.3.2 and 2.3.6. Version 2.3.3 changed `decay_function` from a callable to a string name and added `sigma_decay_function`. The 2.3.6 floor gives one API.
+- **FACT-003**: Online training of a 13×4 map on 500×30 data for 10 epochs takes 0.15 s. A 50-configuration sweep on the CRB data takes roughly 8 s; 50,000 rows take roughly 15 s per fit.
+- **FACT-004**: Same seed gives identical weights; different seeds give different weights.
+- **FACT-005**: MiniSom warns when `neighborhood_function="bubble"` has a non-integer sigma or sigma below 1.
+- **FACT-006**: Example data provenance. The 500-SOW supply file reconstructs from the public MAPS-Framework raw data to within 5e-8 using the TASK-018 formula. `Trace`, `Scenario`, `TraceNumber`, and `Median` match `natural_flow_traces.csv`; all 500 `(mead, powell, demand)` rows appear in `initial_condition_demand_samples.csv`. The paper's Data Availability statement points to that MIT-licensed repository, and parasolpy is MIT.
+- **FACT-007**: The scenario mix in the 500 SOWs is lopsided (`npc_cmip3` 432, `npc_adjusted` 37, `cmip5` 20, `paleo_drought` 10, `stress_test` 1), so the demo layers use `Median`, `demand`, and `InitCombinedStorage`.
 
-- **DEC-001**: Should MiniSom be a core dependency (default; it is tiny and numpy-only) or an optional extra `parasolpy[som]` with a lazy import and a helpful `ImportError`?
-- **DEC-002**: Should `append_som` default to `standardize=True` (z-score, matching the prototype), or should it require callers to pre-scale?
-- **DEC-003**: Does the package need to project *new* data onto a trained map (IDEA-005)? If yes, `append_som` must also return the column means/stds, or `fit_som` must accept a fitted `sklearn.preprocessing.StandardScaler`. If no, skip it.
-- **DEC-004**: Is `err.kaski` needed for model selection? If yes, add it to `som_quality` using `scipy.sparse.csgraph.shortest_path` on the codebook adjacency graph.
-- **DEC-005**: Should `dev/minisomwrapper/` be deleted after migration, or kept as a historical reference?
-- **DEC-006**: Which of IDEA-001…IDEA-007 should be promoted into scheduled phases? The owner noted that more functionality is coming, so list it here.
+**Risks**
+
+- **RISK-001**: A caller forgets to scale features and one column dominates distances. Mitigation: REQ-005 warning, explicit scaling in every example, docstring note.
+- **RISK-002**: A caller applies different scaling at fit time and at assignment time. Mitigation: the docs recipe for projecting new data reuses the training mean and standard deviation by name.
+- **RISK-003**: `sigma=1.5` suits maps near 13×4 and is narrow for much larger maps. Mitigation: docstring note and `sigma_fraction` in `sweep_som`.
+- **RISK-004**: `plot_som_node_traces` produces very small panels on large maps. Mitigation: default `figsize` scales with `(x_dim, y_dim)`; the docstring suggests it for maps up to roughly 100 neurons.
+
+**Assumptions**
+
+- **ASSUMPTION-001**: Users train on at most about 50,000 rows (CON-003). Larger native fits are out of scope for this version.
+- **ASSUMPTION-002**: Rows of `data` and `df` passed to `append_som` share order. The function checks length only.
+
+**Open decisions**
+
+None. All decisions from version 1.0 (DEC-001 through DEC-006) are resolved in Sections 1 and 3.
 
 ## 8. Related Specifications / Further Reading
 
+- Pernat, M. R., Kasprzyk, J. R., Zagona, E. A. (2026). Negotiating management alternatives under uncertain future conditions using a self-organizing map framework. *Environmental Modelling & Software* 205, 107118. https://doi.org/10.1016/j.envsoft.2026.107118
+- MAPS-Framework code and data: https://github.com/madrpernat/MAPS-Framework
 - MiniSom source and docs: https://github.com/JustGlowing/minisom
-- Kohonen, T. (2001). *Self-Organizing Maps*, 3rd ed. Springer.
-- R `kohonen` package (legacy numbering and radius semantics): https://cran.r-project.org/package=kohonen
-- R `aweSOM` quality measures (`err.quant`, `err.varratio`, `err.topo`, `err.kaski`): https://cran.r-project.org/package=aweSOM
-- Existing parasolpy conventions: `parasolpy/tradeoff.py` (`append_Kmeans`), `parasolpy/plotting.py` (`(fig, ax, output_path)` contract)
+- Kohonen, T. (2013). Essentials of the self-organizing map. *Neural Networks* 37, 52–65.
+- Existing parasolpy conventions: `parasolpy/tradeoff.py` (`append_Kmeans`, `label_eps_nd`, `parallel_plot_hp`), `parasolpy/plotting.py` (`(fig, ax, output_path)` contract)
