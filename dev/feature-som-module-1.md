@@ -1,6 +1,6 @@
 ---
 goal: Add a small, composable Self-Organizing Map (SOM) toolkit to parasolpy, built on MiniSom
-version: 2.0
+version: 2.1
 date_created: 2026-11-11
 last_updated: 2026-11-11
 owner: Joseph Kasprzyk
@@ -188,3 +188,23 @@ None. All decisions from version 1.0 (DEC-001 through DEC-006) are resolved in S
 - MiniSom source and docs: https://github.com/JustGlowing/minisom
 - Kohonen, T. (2013). Essentials of the self-organizing map. *Neural Networks* 37, 52–65.
 - Existing parasolpy conventions: `parasolpy/tradeoff.py` (`append_Kmeans`, `label_eps_nd`, `parallel_plot_hp`), `parasolpy/plotting.py` (`(fig, ax, output_path)` contract)
+
+## 9. Implementation Notes
+
+Recorded on 2026-11-11 after implementation. All 23 tasks are complete; TEST-001 through TEST-013 pass (157 tests in the full suite), and the Sphinx docs build without warnings.
+
+**Deviations from the plan**
+
+- **NOTE-001 (TASK-020, recipe 3)**: The spread-members recipe is `df.sample(frac=1, random_state=0).groupby("Neuron").head(n)`. The planned `groupby("Neuron").sample(...)` raises on neurons holding fewer than `n` rows, and the guarded `groupby("Neuron").apply(...)` form drops the `Neuron` column under pandas 3.
+- **NOTE-002 (TASK-003)**: `fit_som` also raises `ValueError` when `data` is not 2-D or contains NaN or infinite values. MiniSom otherwise trains silently to NaN weights.
+- **NOTE-003 (TASK-012)**: `plot_som_layer` raises `ValueError` for an `annotate` value other than `None`, `"value"`, or `"id"`, and for an array whose shape is not `(x_dim, y_dim)`. Annotation text switches between black and white by cell luminance.
+- **NOTE-004 (TASK-013)**: `plot_som_node_traces` draws only the `trace_df` columns that have an entry in `assignments`, and raises `ValueError` when none match.
+- **NOTE-005 (TASK-019)**: The demo also writes `examples/_output/som_sweep.csv`. Its figures and that CSV are committed, as for the other examples.
+- **NOTE-006 (REQ-005)**: The zero-variance warning and the spread-ratio warning are separate; the ratio is computed over the non-constant columns.
+
+**Measured on the CRB demo** (13×4 hexagonal, 500 SOWs, defaults): explained variance 91.6 %, topographic error 0.054, quantization error 1.459, all 52 neurons occupied. The 30-configuration sweep yields 12 non-dominated configurations at epsilons `[1, 1.0, 0.01]`. The whole script runs in about 30 s.
+
+**Open follow-ups**
+
+- **TODO-001**: `pytest` is not a declared dependency, so `poetry run pytest` (CON-001, RELEASING.md) fails on a clean install by falling through to a global pytest. Add a Poetry dev dependency group.
+- **TODO-002**: `parasolpy/__init__.py` was stored with CRLF line endings; the commit that added the exports normalized it to LF per `.gitattributes`, so that diff touches every line.
