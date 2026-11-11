@@ -8,6 +8,8 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-11-11
+
 ### Added
 - Tests for `parasolpy.file_processing`: superheader detection (including
   UTF-8 BOM), `load_solutions_dataframe`, `split_solutions_dataframe`,
@@ -163,7 +165,8 @@ Initial PyPI release.
   (path helpers, unit conversions, XML config parsing).
 - Self-contained example scripts under `examples/`.
 
-[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.3.0...v0.4.0
