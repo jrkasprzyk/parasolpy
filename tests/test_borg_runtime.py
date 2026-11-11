@@ -11,7 +11,6 @@ import unittest
 from pathlib import Path
 
 from parasolpy.borg_runtime import (
-    leaked_model_ids,
     parse_borg_runtime,
     parse_borg_runtime_metadata,
     solution_lifespans,
@@ -108,19 +107,6 @@ class TestBorgRuntime(unittest.TestCase):
         self.assertEqual(list(meta["restarts"]), [0, 1, 1])
         self.assertEqual(list(meta["population_size"]), [100, 100, 120])
         self.assertEqual(list(meta["archive_size"]), [2, 2, 2])
-
-    def test_leaked_model_ids(self):
-        models = Path(self.tmpdir.name) / "SolutionModels"
-        models.mkdir(exist_ok=True)
-        for sol_id in (5, 175, 250):
-            (models / f"Solution{sol_id}.mdl").write_text("model")
-        # 5 and 250 appear in snapshots; 175 never does
-        self.assertEqual(leaked_model_ids(models, self.spans), [175])
-
-    def test_leaked_missing_dir_raises(self):
-        with self.assertRaises(FileNotFoundError):
-            leaked_model_ids(Path(self.tmpdir.name) / "no_dir", self.spans)
-
 
 if __name__ == "__main__":
     unittest.main()

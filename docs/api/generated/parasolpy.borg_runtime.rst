@@ -8,7 +8,6 @@ parasolpy.borg\_runtime
 
    .. autosummary::
    
-      leaked_model_ids
       parse_borg_runtime
       parse_borg_runtime_metadata
       solution_lifespans

@@ -388,7 +388,6 @@ def plot_trace_exceedance(
 # colorblind-safe separation on a white surface)
 _LIFESPAN_COLOR_FINAL = "#2a78d6"    # still in the archive at the end of the run
 _LIFESPAN_COLOR_REMOVED = "#1baf7a"  # dominated and removed during the run
-_LIFESPAN_COLOR_LEAKED = "#eda100"   # model file with no runtime-snapshot record
 _LIFESPAN_SHADE_RESTART = "#f0efec"  # snapshot gaps coinciding with restarts
 _INK_PRIMARY = "#0b0b0b"
 _INK_SECONDARY = "#52514e"
@@ -400,7 +399,6 @@ def plot_archive_lifespans(
     snapshots,
     output_dir,
     filename="archive_lifespan.png",
-    leaked_ids=None,
     restart_gap_threshold=50,
     figsize=(9, 10),
     dpi=300,
@@ -419,10 +417,6 @@ def plot_archive_lifespans(
             ``parasolpy.borg_runtime.parse_borg_runtime``.
         output_dir (str | PathLike): Directory where figure will be saved.
         filename (str, optional): Output image file name.
-        leaked_ids (list of int, optional): Solution IDs with a saved model
-            file but no snapshot record (from
-            ``parasolpy.borg_runtime.leaked_model_ids``); drawn as a third
-            category of minimum-width ticks, since only their birth is known.
         restart_gap_threshold (int, optional): Shade snapshot gaps wider
             than this many NFE.
         figsize (tuple, optional): Figure size in inches.
@@ -441,19 +435,6 @@ def plot_archive_lifespans(
     nfes = np.array([nfe for nfe, _ in snapshots])
     sizes = np.array([len(ids) for _, ids in snapshots])
     final_nfe = nfes[-1]
-
-    if leaked_ids:
-        # leaked solutions were born and removed between snapshots, so only
-        # the birth is known; draw them as minimum-width ticks
-        leaked = pd.DataFrame(
-            {"birth": leaked_ids, "death": leaked_ids,
-             "in_final_archive": False, "leaked": True},
-            index=pd.Index(leaked_ids, name="id"),
-        )
-        spans["leaked"] = False
-        spans = pd.concat([spans, leaked])
-    else:
-        spans["leaked"] = False
 
     # rank solutions by birth so rows read chronologically top-to-bottom
     spans = spans.sort_index()
@@ -480,11 +461,9 @@ def plot_archive_lifespans(
                  color=_INK_SECONDARY, va="center")
 
     categories = [
-        (~spans["in_final_archive"] & ~spans["leaked"],
+        (~spans["in_final_archive"],
          _LIFESPAN_COLOR_REMOVED, "removed during run"),
         (spans["in_final_archive"], _LIFESPAN_COLOR_FINAL, "in final archive"),
-        (spans["leaked"], _LIFESPAN_COLOR_LEAKED,
-         "leaked model file (no snapshot)"),
     ]
     for mask, color, label in categories:
         mask = mask.to_numpy()

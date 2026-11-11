@@ -33,7 +33,7 @@ file_processing : has_superheader, load_solutions_dataframe,
                   convert_solutions_csv_to_single_header,
                   split_solutions_dataframe, split_solutions_csv
 borg_runtime: parse_borg_runtime, parse_borg_runtime_metadata,
-              solution_lifespans, leaked_model_ids
+              solution_lifespans
 tradeoff    : df_to_pt, label_eps_nd, append_Kmeans, parallel_plot_hp,
               load_objective_names, load_objectives_and_solutions,
               resolve_solutions_csv, normalize_for_radar,
@@ -66,7 +66,6 @@ def help():
 	print(__help__)
 
 from parasolpy.borg_runtime import (
-	leaked_model_ids,
 	parse_borg_runtime,
 	parse_borg_runtime_metadata,
 	solution_lifespans,
@@ -141,7 +140,6 @@ __all__ = [
 	"parse_borg_runtime",
 	"parse_borg_runtime_metadata",
 	"solution_lifespans",
-	"leaked_model_ids",
 	# dash_tools
 	"build_tradeoff_dash_app",
 	"load_dash_inputs",
