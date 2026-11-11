@@ -1,0 +1,8 @@
+x_dim: 13
+y_dim: 4
+x_y_ratio: 3.25
+n_neurons: 52
+radius: 10.53565375
+dist_func: sumofsquares
+neighbor_func: gaussian
+radius_fraction: 0.964657417032868
