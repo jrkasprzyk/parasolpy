@@ -9,9 +9,7 @@ evaluation (NFE) at which the solution was created.
 
 These helpers reconstruct the birth and death of every archived solution,
 which supports questions like "how long do solutions survive in the archive?"
-and "which saved solution files should have been cleaned up?" (see
-``leaked_model_ids``). Use ``parasolpy.plotting.plot_archive_lifespans`` to
-visualize the result.
+Use ``parasolpy.plotting.plot_archive_lifespans`` to visualize the result.
 """
 
 from __future__ import annotations
@@ -142,34 +140,3 @@ def solution_lifespans(snapshots):
     return pd.DataFrame(
         rows, columns=["id", "birth", "death", "in_final_archive"]
     ).set_index("id")
-
-
-def leaked_model_ids(models_dir, spans, pattern="Solution*.mdl"):
-    """Find saved solution-model files whose IDs appear in no snapshot.
-
-    Borg-RiverWare saves a model file per archived solution and is expected
-    to delete it when the solution is removed from the archive. Solutions
-    that enter and leave the archive between two runtime snapshots (for
-    example during a restart, when no runtime output is written) are
-    invisible to snapshot-based cleanup and their files leak.
-
-    Args:
-        models_dir (str | PathLike): Folder containing saved model files
-            named with the solution ID (for example ``Solution123.mdl``).
-        spans (pd.DataFrame): Output of :func:`solution_lifespans`.
-        pattern (str, optional): Glob pattern for model files.
-
-    Returns:
-        list of int: Sorted solution IDs with a file on disk but no record
-        in any runtime snapshot.
-    """
-    directory = Path(models_dir)
-    if not directory.is_dir():
-        raise FileNotFoundError(f"Models directory not found: {directory}")
-
-    disk_ids = set()
-    for path in directory.glob(pattern):
-        match = re.search(r"\d+", path.stem)
-        if match:
-            disk_ids.add(int(match.group()))
-    return sorted(disk_ids - set(spans.index))

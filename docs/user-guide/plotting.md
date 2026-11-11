@@ -64,4 +64,4 @@ The figure has two panels that share the x-axis (NFE):
 
 Snapshot gaps wider than `restart_gap_threshold` NFE (default 50) are shaded. These gaps usually mark Borg restarts, when Borg writes no runtime output.
 
-Pass `leaked_ids` (from `leaked_model_ids`) to add a third category: solutions with a saved model file but no snapshot record. Only their birth is known, so they appear as short ticks. See [Borg Runtime Analysis](borg-runtime.md) for the full workflow.
+See [Borg Runtime Analysis](borg-runtime.md) for details on parsing runtime snapshots and interpreting solution lifespans.
