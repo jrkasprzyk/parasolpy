@@ -1,6 +1,6 @@
 # Examples
 
-The repository includes self-contained scripts that generate synthetic data and write outputs under `examples/_output/`. Run them from the repository root after installing the package dependencies.
+The repository includes self-contained scripts that generate synthetic data or read small bundled sample files and write outputs under `examples/_output/`. Run them from the repository root after installing the package dependencies.
 
 ```bash
 python examples/01_reservoir_sequent_peak.py
@@ -10,6 +10,7 @@ python examples/04_trace_plots.py
 python examples/05_unit_conversions.py
 python examples/06_nowak_disaggregation.py
 python examples/07_borg_archive_lifespan.py
+python examples/08_som_maps_demo.py
 ```
 
 ```{toctree}
@@ -22,4 +23,5 @@ trace-plots
 unit-conversions
 nowak
 borg-archive-lifespan
+som
 ```
