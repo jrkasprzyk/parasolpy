@@ -44,3 +44,24 @@ python examples/04_trace_plots.py
 ```
 
 The script writes heatmap, spaghetti, fan chart, seasonality, and exceedance figures to `examples/_output/`.
+
+## Borg Archive Lifespans
+
+`plot_archive_lifespans` draws a survival chart of a Borg MOEA archive. Its input is the snapshot list from `parasolpy.borg_runtime.parse_borg_runtime`, so it does not take a trace DataFrame like the plots above.
+
+```python
+from parasolpy.borg_runtime import parse_borg_runtime
+from parasolpy.plotting import plot_archive_lifespans
+
+snapshots = parse_borg_runtime("RunTime.txt")
+fig, (ax_size, ax), output_path = plot_archive_lifespans(snapshots, "examples/_output")
+```
+
+The figure has two panels that share the x-axis (NFE):
+
+- **Top:** archive size at each snapshot.
+- **Bottom:** one horizontal bar per solution, ordered by birth, from birth NFE to death NFE. Solutions still in the final archive are drawn in a different color from solutions removed during the run.
+
+Snapshot gaps wider than `restart_gap_threshold` NFE (default 50) are shaded. These gaps usually mark Borg restarts, when Borg writes no runtime output.
+
+Pass `leaked_ids` (from `leaked_model_ids`) to add a third category: solutions with a saved model file but no snapshot record. Only their birth is known, so they appear as short ticks. See [Borg Runtime Analysis](borg-runtime.md) for the full workflow.

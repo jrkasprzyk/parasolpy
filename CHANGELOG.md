@@ -8,6 +8,23 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- Tests for `parasolpy.file_processing`: superheader detection (including
+  UTF-8 BOM), `load_solutions_dataframe`, `split_solutions_dataframe`,
+  `split_solutions_csv`, `convert_solutions_csv_to_single_header`, and their
+  error paths.
+- Tests for `parasolpy.tradeoff.label_eps_nd`: dominance filtering, maximize
+  direction, epsilon-box merging, index labels, and input validation.
+- `docs/user-guide/borg-runtime.md`: user guide for the `borg_runtime`
+  module (runtime file format, lifespan convention, leaked model files).
+- `docs/examples/borg-archive-lifespan.md`: docs page for
+  `examples/07_borg_archive_lifespan.py`.
+
+### Changed
+- `docs/user-guide/tradeoff.md` documents `parallel_plot_hp` usage and the
+  `force_numerical_columns` axis-scaling option.
+- `docs/user-guide/plotting.md` documents `plot_archive_lifespans`.
+
 ## [0.4.2] — 2026-07-21
 
 ### Added

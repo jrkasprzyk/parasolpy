@@ -52,6 +52,35 @@ They combine XML objective metadata with normalized solution CSVs from `parasolp
 
 `parallel_plot_hp` returns a HiPlot experiment. The installed `parasolpy-tradeoff` CLI wraps related loading logic in a Dash app for interactive exploration.
 
+```python
+from parasolpy.tradeoff import parallel_plot_hp
+
+exp = parallel_plot_hp(
+    clustered,
+    obj_names=["Cost", "Reliability"],
+    obj_directions=["minimize", "maximize"],
+    color_column="Cost",
+)
+exp.to_html("tradeoff_parallel.html")
+```
+
+### Axis scaling
+
+HiPlot infers each axis type from the data, and it can treat a numeric column with few distinct values (such as a cluster ID or an integer decision variable) as categorical. To avoid this, `parallel_plot_hp` gives every column a numeric axis by default.
+
+To keep some axes categorical, pass `force_numerical_columns` with only the columns that should be numeric:
+
+```python
+exp = parallel_plot_hp(
+    clustered,
+    obj_names=["Cost", "Reliability"],
+    obj_directions=["minimize", "maximize"],
+    force_numerical_columns=["Cost", "Reliability"],
+)
+```
+
+Columns not in the list fall back to HiPlot's inferred type. Columns that hold text labels must be left out of the list, because a numeric axis cannot place non-numeric values.
+
 ## Example Script
 
 ```bash

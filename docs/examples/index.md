@@ -9,6 +9,7 @@ python examples/03_tradeoff_parallel_plot.py
 python examples/04_trace_plots.py
 python examples/05_unit_conversions.py
 python examples/06_nowak_disaggregation.py
+python examples/07_borg_archive_lifespan.py
 ```
 
 ```{toctree}
@@ -20,4 +21,5 @@ tradeoff
 trace-plots
 unit-conversions
 nowak
+borg-archive-lifespan
 ```
