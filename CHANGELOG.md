@@ -52,7 +52,7 @@ breaking changes).
 - Tests for `parasolpy.tradeoff.label_eps_nd`: dominance filtering, maximize
   direction, epsilon-box merging, index labels, and input validation.
 - `docs/user-guide/borg-runtime.md`: user guide for the `borg_runtime`
-  module (runtime file format, lifespan convention, leaked model files).
+  module (runtime file format and lifespan convention).
 - `docs/examples/borg-archive-lifespan.md`: docs page for
   `examples/07_borg_archive_lifespan.py`.
 
@@ -83,12 +83,11 @@ breaking changes).
 ### Added
 - `parasolpy.borg_runtime` module: Borg MOEA runtime-file parser
   (`parse_borg_runtime`, `parse_borg_runtime_metadata`), per-solution
-  archive lifespan analysis (`solution_lifespans`), and detection of
-  saved solution-model files orphaned by snapshot-invisible archive
-  removals (`leaked_model_ids`) — all exported from the package root.
+  archive lifespan analysis (`solution_lifespans`) — all exported from the
+  package root.
 - `plot_archive_lifespans` in `parasolpy.plotting`: survival chart of
   archive solution birth/death with an archive-size panel, shaded
-  restart windows, and optional leaked-model overlay.
+  restart windows.
 - Bundled sample `parasolpy/data/RunTime_NorthSouth.txt`, demo script
   `examples/07_borg_archive_lifespan.py`, and `tests/test_borg_runtime.py`.
 - `tests/test_util_paths.py` covering `script_local_path` and `ensure_dir`,
