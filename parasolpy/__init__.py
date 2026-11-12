@@ -45,6 +45,8 @@ dash_tools  : build_tradeoff_dash_app, load_dash_inputs
 interactive : prompt_experiment_name, prompt_epsilons,
               load_experiment_epsilons, prompt_starting_epsilons
 rdf         : parse_rdf, list_slots
+som         : fit_som, append_som, som_quality, sweep_som,
+              plot_som_layer, plot_som_node_traces
 
 Quick start
 -----------
@@ -104,6 +106,14 @@ from parasolpy.plotting import (
 )
 from parasolpy.rdf import list_slots, parse_rdf
 from parasolpy.reservoir import sequent_peak
+from parasolpy.som import (
+	append_som,
+	fit_som,
+	plot_som_layer,
+	plot_som_node_traces,
+	som_quality,
+	sweep_som,
+)
 from parasolpy.tradeoff import (
 	append_Kmeans,
 	build_radar_figure,
@@ -173,6 +183,13 @@ __all__ = [
 	"list_slots",
 	# reservoir
 	"sequent_peak",
+	# som
+	"fit_som",
+	"append_som",
+	"som_quality",
+	"sweep_som",
+	"plot_som_layer",
+	"plot_som_node_traces",
 	# tradeoff
 	"append_Kmeans",
 	"build_radar_figure",

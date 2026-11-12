@@ -1,6 +1,6 @@
 [project]
 name = "parasolpy"
-version = "0.4.3"
+version = "0.5.0"
 description = "Python tools for multi-objective decision analysis and visualization"
 authors = [
     {name = "Joseph Kasprzyk",email = "joseph.kasprzyk@colorado.edu"}
@@ -39,6 +39,7 @@ dependencies = [
     "scikit-learn (>=1.3.0,<2.0.0)",
     "beautifulsoup4 (>=4.12.0,<5.0.0)",
     "lxml (>=4.9.0)",
+    "minisom (>=2.3.6,<3.0.0)",
 ]
 
 [project.optional-dependencies]

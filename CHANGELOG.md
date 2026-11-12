@@ -8,6 +8,40 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-11
+
+### Added
+- `parasolpy.som`: a self-organizing map toolkit built on MiniSom, extracting
+  the core of the MAPS framework (Pernat, Kasprzyk, Zagona 2026,
+  doi:10.1016/j.envsoft.2026.107118). Six composable functions, all exported
+  from the package root:
+  - `fit_som` trains a map and returns the `MiniSom` instance. It does no
+    feature scaling and warns when column spreads differ by more than 100x or
+    a column has zero variance.
+  - `append_som` assigns rows (training rows or new rows) to neurons and adds
+    `Neuron`, `Neuron_x`, `Neuron_y`, and `Neuron_dist` columns. Neuron IDs
+    are 0-based: `Neuron = Neuron_y * x_dim + Neuron_x`. Non-finite feature
+    values are rejected, as in `fit_som`.
+  - `som_quality` returns quantization error, topographic error, and
+    explained variance. It raises on zero-variance data, where explained
+    variance is undefined.
+  - `sweep_som` fits and scores a Latin hypercube sample of map
+    configurations, for selection with `label_eps_nd`.
+  - `plot_som_layer` draws any per-neuron value on the hexagonal or
+    rectangular map grid.
+  - `plot_som_node_traces` draws each neuron's member traces.
+- `examples/08_som_maps_demo.py` and the bundled 500-SOW Colorado River Basin
+  sample in `examples/data/crb_500_sow/`.
+- `docs/user-guide/som.md` (core workflow plus eight standalone recipes),
+  `docs/examples/som.md`, and the `parasolpy.som` API reference page.
+- Tests for `parasolpy.som`.
+
+### Changed
+- `minisom (>=2.3.6,<3.0.0)` is a new core dependency.
+
+### Removed
+- The `dev/minisomwrapper/` prototype, superseded by `parasolpy.som`.
+
 ## [0.4.3] — 2026-11-11
 
 ### Added
@@ -164,7 +198,8 @@ Initial PyPI release.
   (path helpers, unit conversions, XML config parsing).
 - Self-contained example scripts under `examples/`.
 
-[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.0...v0.4.1
