@@ -8,6 +8,8 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-12
+
 ### Added
 - `parasolpy.som`: a self-organizing map toolkit built on MiniSom, extracting
   the core of the MAPS framework (Pernat, Kasprzyk, Zagona 2026,
@@ -197,6 +199,7 @@ Initial PyPI release.
 - Self-contained example scripts under `examples/`.
 
 [Unreleased]: https://github.com/jrkasprzyk/parasolpy/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.5.0...v0.5.0
 [0.5.0]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/jrkasprzyk/parasolpy/compare/v0.4.1...v0.4.2
